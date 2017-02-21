@@ -39,8 +39,8 @@ int main(void){
 	pwm_init();
 
 	// incremental encoder counter setup
-	DDRD |= (1<<PD0); // set PD0 as intput, used for INT0
-	PORTD |= (1<<PD0); // enable pullup resistor
+	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
+	PORTD |= (1<<PD0);	        // enable pullup resistor
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
 	sei(); 				// enable global inturrupts
 	
