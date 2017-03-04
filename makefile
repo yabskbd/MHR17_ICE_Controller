@@ -1,5 +1,5 @@
 #Add files for compiler
-TARGET=clutch.c ./libraries/lib_mcu/can/can_lib.c ./libraries/lib_mcu/can/can_drv.c 
+TARGET=clutch.c ./libraries/lib_mcu/can/can_lib.c ./libraries/lib_mcu/can/can_drv.c ./libraries/lib_mcu/uart/uart_lib.c ./libraries/lib_mcu/uart/uart_drv.c  ./libraries/lib_mcu/timer/timer16_drv.c ./libraries/lib_mcu/timer/timer8_drv.c 
 
 # Change based on computer
 USB=tty.usbserial-A902ZULV 
