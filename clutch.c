@@ -25,11 +25,9 @@ void adc_init() {
 	// turn on adc
     
 	ADMUX |= (1 << REFS0); //SET Voltage ref to internal VIN
-    ADMUX |= (1 << ADLAR); //LEFT SHIFT so we just have to READ ADCH reg for data
-    //DEFAULT MUX is set to ADC0
-    ADCSRA |= (1<<ADEN); //ADC Enabled
-
-
+    	ADMUX |= (1 << ADLAR); //LEFT SHIFT so we just have to READ ADCH reg for data
+    	//DEFAULT MUX is set to ADC0
+    	ADCSRA |= (1<<ADEN); //ADC Enabled
 
 	return;
 }
@@ -64,13 +62,13 @@ ISR(INT0_vect) {
 
 int main(void){
 
-    // setup timer for PWM to control motor 
+    	// setup timer for PWM to control motor 
 	pwm_init();
-    adc_init();
-    //Init Serial UART
-    while(uart_init(UART_BAUDRATE,0x0680)!=1);
+    	adc_init();
+    	//Init Serial UART
+    	while(uart_init(UART_BAUDRATE,0x0680)!=1);
 
-    // incremental encoder counter setup
+    	// incremental encoder counter setup
 	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
 	PORTD |= (1<<PD0);	        // enable pullup resistor
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
@@ -79,13 +77,11 @@ int main(void){
 	// execution loop
 	while(1) {
         
-        uart_put_string("GO Packards");
-        ADCSRA |= (1<<ADSC);
-        while(ADCSRA & 0x40);
-        if(ADCH > 10){
-            OCR0A = (ADCH)-12;
-        }
-
-
+        	uart_put_string("GO Packards");
+        	ADCSRA |= (1<<ADSC);
+        	while(ADCSRA & 0x40);
+        	if(ADCH > 10){
+            		OCR0A = (ADCH)-12;
+        	}
 	}
 }

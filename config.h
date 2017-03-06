@@ -33,7 +33,7 @@
 //_____ D E F I N I T I O N S __________________________________________________
 
     // -------------- MCU LIB CONFIGURATION
-#define FOSC           16000        // 8 MHz External cristal
+#define FOSC           16000        // 16 MHz External cristal
 #define F_CPU          (FOSC*1000) // Need for AVR GCC
 
     // -------------- UART LIB CONFIGURATION
