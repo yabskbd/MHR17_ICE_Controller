@@ -28,6 +28,7 @@ void send_byte(unsigned char data)
 	// wait for transmit buffer to be empty
 	while(!(UCSR0A & (1<<UDRE0)));
 	UDR0 = data;	// write to transmit buffer
+	return;
 }
 
 // OC0A is the pin outputtng the pwm signal
