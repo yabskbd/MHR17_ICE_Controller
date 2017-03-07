@@ -1,20 +1,21 @@
 /************************************************
 ************************************************/
 
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "config.h"
 #include "libraries/lib_mcu/can/can_lib.h"
-#include "libraries/lib_mcu/uart/uart_lib.h"
+
+#define UART_BAUDRATE 9600
+#define BAUD_PRESCALE ((F_CPU / (UART_BAUDRATE * 16UL))-1)
 
 // setup and initialize UART for debugging messages
-void serial_init(unsigned int baud_rate)
+void serial_init()
 {
 	UCSR0C |= (0<<UMSEL0);				//asynchronous operation
 	UCSR0A |= (0<<U2X0);				//normal asynchronous mode
-	UBRR0H |= (unsigned char) (baud_rate>>8);	//set the baud rate (high register)
-	UBRR0L |= (unsigned char) baud_rate;		//set the baud rate (low register)
+	UBRR0H |= (unsigned char) (BAUD_PRESCALE>>8);	//set the baud rate (high register)
+	UBRR0L |= (unsigned char) BAUD_PRESCALE;	//set the baud rate (low register)
 	UCSR0C |= (0<<UPM01)|(0<<UPM00);		//no parity bits
 	UCSR0C |= (0<<USBS0);				//one stop bit
 	UCSR0C |= (0<<UCSZ02)|(1<<UCSZ01)|(1<<UCSZ01);	//8-bit character size
@@ -22,12 +23,23 @@ void serial_init(unsigned int baud_rate)
 	return;
 }
 
-// function for sending debug messages over serial bus
-void send_byte(unsigned char data)
+// functions for sending debug messages over serial bus
+void send_char(char data)
 {
 	// wait for transmit buffer to be empty
 	while(!(UCSR0A & (1<<UDRE0)));
 	UDR0 = data;	// write to transmit buffer
+	return;
+}
+
+void send_message(char* message)
+{
+	//while there are still characters to send
+	while(*message |= '\0')
+	{
+		send_char(*message);
+		message++;
+	}
 	return;
 }
 
@@ -69,8 +81,9 @@ void main(void)
     	// setup timer for PWM to control motor 
 	pwm_init();
     	adc_init();
-	serial_init(9600);
-	send_byte('a');
+	serial_init();
+	send_char('a');
+	send_message("Hello World");
 
     	// incremental encoder counter setup
 	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
@@ -81,7 +94,7 @@ void main(void)
 	// execution loop
 	while(1)
        	{
-
+		send_message("Go Pack Go!\n");
 	}
 
 	return;

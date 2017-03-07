@@ -24,7 +24,7 @@
 //_____ I N C L U D E S ________________________________________________________
 #include "./libraries/lib_mcu/compiler.h"
 #include <avr/io.h>
-#include <avr/interrupt.h>
+
 #include "./libraries/lib_mcu/at90can_drv.h"
 #include "./libraries/lib_board/dvk90can1_board.h"
 
@@ -33,8 +33,8 @@
 //_____ D E F I N I T I O N S __________________________________________________
 
     // -------------- MCU LIB CONFIGURATION
-#define FOSC           16000        // 16 MHz External cristal
-#define F_CPU          (FOSC*1000) // Need for AVR GCC
+#define FOSC           16000UL		// 16 MHz External cristal
+#define F_CPU          (FOSC*1000) 	// Need for AVR GCC
 
     // -------------- UART LIB CONFIGURATION
 #define USE_UART UART_0
