@@ -6,7 +6,7 @@
 #include "config.h"
 #include "libraries/lib_mcu/can/can_lib.h"
 
-#define UART_BAUDRATE 9600
+#define UART_BAUDRATE 9600UL
 #define BAUD_PRESCALE ((F_CPU / (UART_BAUDRATE * 16UL))-1)
 
 // setup and initialize UART for debugging messages
@@ -55,7 +55,6 @@ void pwm_init()
 	// set duty cycle of pwm
 	uint8_t duty = 191; // 75% of 255 is 191
 	OCR0A = duty;
-	
 	return;
 }
 
@@ -66,7 +65,12 @@ void adc_init()
     	ADMUX |= (1 << ADLAR); //LEFT SHIFT so we just have to READ ADCH reg for data
     	//DEFAULT MUX is set to ADC0
     	ADCSRA |= (1<<ADEN);   //ADC Enabled
+	return;
+}
 
+//function for setting up CAN
+void init_can()
+{
 	return;
 }
 
