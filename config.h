@@ -22,9 +22,8 @@
 #define _CONFIG_H_
 
 //_____ I N C L U D E S ________________________________________________________
-#include "./libraries/lib_mcu/compiler.h"
 #include <avr/io.h>
-
+#include "./libraries/lib_mcu/compiler.h"
 #include "./libraries/lib_mcu/at90can_drv.h"
 #include "./libraries/lib_board/dvk90can1_board.h"
 
@@ -37,7 +36,6 @@
 #define F_CPU          (FOSC*1000) 	// Need for AVR GCC
 
     // -------------- UART LIB CONFIGURATION
-#define USE_UART UART_0
 #define CAN_BAUDRATE   1000        // in kBit
     // -------------- MISCELLANEOUS
     // Using TIMER_2 as RTC
