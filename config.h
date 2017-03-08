@@ -37,7 +37,13 @@
 
     // -------------- UART LIB CONFIGURATION
 #define CAN_BAUDRATE   1000        // in kBit
-    // -------------- MISCELLANEOUS
+    
+//CAN IDs
+#define	THROTTLE_ID	0x20
+#define CLUTCH_ID	0x30
+#define	STATUS_ID	0x60
+
+	// -------------- MISCELLANEOUS
     // Using TIMER_2 as RTC
 #define USE_TIMER8       TIMER8_1
 #define USE_TIMER16      TIMER16_1

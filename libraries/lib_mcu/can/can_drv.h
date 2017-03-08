@@ -37,7 +37,7 @@
 #endif
 #define CAN_AUTOBAUD    0
     // ----------
-#if FOSC == 16000             //!< Fclkio = 16 MHz, Tclkio = 62.5 ns
+#if FOSC == 16000UL             //!< Fclkio = 16 MHz, Tclkio = 62.5 ns
 #   if   CAN_BAUDRATE == 100       //!< -- 100Kb/s, 16x Tscl, sampling at 75%
 #       define CONF_CANBT1  0x12       // Tscl  = 10x Tclkio = 625 ns
 #       define CONF_CANBT2  0x0C       // Tsync = 1x Tscl, Tprs = 7x Tscl, Tsjw = 1x Tscl
