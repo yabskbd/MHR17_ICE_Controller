@@ -9,6 +9,9 @@
 #define UART_BAUDRATE 9600UL
 #define BAUD_PRESCALE ((F_CPU / (UART_BAUDRATE * 16UL))-1)
 
+#define MAX_THROTTLE	4000
+#define MIN_THROTTLE	1800
+
 // setup and initialize UART for debugging messages
 void serial_init()
 {
@@ -46,27 +49,44 @@ void send_message(char* message)
 // OC0A is the pin outputtng the pwm signal
 void pwm_init()
 {
-	// set pwm to fast PWM mode, non-inverting compare mode, and prescalar to 8
-	TCCR0A |= (1<<WGM00)|(1<<WGM01)|(1<<COM0A1)|(1<<CS01);
+	DDRB |= 0xFF;
+	TCCR1A |= (1 << COM1A1);
+	TCCR1B |= (0<<CS10)|(1<<CS11)|(0<<CS12);	// set prescalar to 8
+	TCCR1A |= (0<<WGM10)|(1<<WGM11);		// set to fast PWM mode, ICR1 register
+	TCCR1B |= (1<<WGM12)|(1<<WGM13);		// is TOP. Toggles pin OC1A.
 
-	// set pin to output mode
-	DDRB |= (1 << PB7); 
-	
-	// set duty cycle of pwm
-	uint8_t duty = 191; // 75% of 255 is 191
-	OCR0A = duty;
+	// set frequency of PWM
+	ICR1H |= (39999>>8);
+	ICR1L |= 39999;
+
+	// initialize duty cycle to zero
+	OCR1AH = (39999/2) >> 8;
+	OCR1AL = (39999/2);
+	TCNT1H = 0;
+	TCNT1L = 0;
+	return;
+}
+
+// function for setting PWM
+void set_duty(U8* duty)
+{
+	// calc ticks to count
+	U16 duty_count = (MAX_THROTTLE-MIN_THROTTLE)*(*duty/255)+MIN_THROTTLE;
+	OCR1AH |= (duty_count>>8);	//set how high to count
+	OCR1AL |= duty_count;
 	return;
 }
 
 void adc_init()
 {
 	// turn on adc
-	ADMUX |= (1 << REFS0); //SET Voltage ref to internal VIN
-    	ADMUX |= (1 << ADLAR); //LEFT SHIFT so we just have to READ ADCH reg for data
+	ADMUX |= (1<<REFS0); //SET Voltage ref to internal VIN
+    	ADMUX |= (1<<ADLAR); //LEFT SHIFT so we just have to READ ADCH reg for data
     	//DEFAULT MUX is set to ADC0
     	ADCSRA |= (1<<ADEN);   //ADC Enabled
 	return;
 }
+
 
 int counter;
 ISR(INT0_vect)
@@ -92,6 +112,9 @@ void main(void)
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
 	sei(); 				// enable global inturrupts
 	
+	U8 test = 100;
+	//set_duty(&test);	
+	while(1);
 	// execution loop
 	while(1)
        	{
@@ -104,10 +127,9 @@ void main(void)
 		switch(can_message.id.std)
 		{
 			case THROTTLE_ID:
+				set_duty(can_message.pt_data);
 				break;
 			case CLUTCH_ID:
-				break;
-			case STATUS_ID:
 				break;
 			default:
 				break;
