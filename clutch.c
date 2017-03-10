@@ -9,8 +9,8 @@
 #define UART_BAUDRATE 9600UL
 #define BAUD_PRESCALE ((F_CPU / (UART_BAUDRATE * 16UL))-1)
 
-#define MAX_THROTTLE	4000
-#define MIN_THROTTLE	1800
+#define MIN_THROTTLE	3650
+#define MAX_THROTTLE	2050
 
 // setup and initialize UART for debugging messages
 void serial_init()
@@ -46,34 +46,23 @@ void send_message(char* message)
 	return;
 }
 
-// OC0A is the pin outputtng the pwm signal
+// initialize pwm for throttle
 void pwm_init()
 {
-	DDRB |= 0xFF;
-	TCCR1A |= (1 << COM1A1);
-	TCCR1B |= (0<<CS10)|(1<<CS11)|(0<<CS12);	// set prescalar to 8
-	TCCR1A |= (0<<WGM10)|(1<<WGM11);		// set to fast PWM mode, ICR1 register
-	TCCR1B |= (1<<WGM12)|(1<<WGM13);		// is TOP. Toggles pin OC1A.
-
-	// set frequency of PWM
-	ICR1H |= (39999>>8);
-	ICR1L |= 39999;
-
-	// initialize duty cycle to zero
-	OCR1AH = (39999/2) >> 8;
-	OCR1AL = (39999/2);
-	TCNT1H = 0;
-	TCNT1L = 0;
+	DDRB |= (1<<PB5);	// set as output
+	TCCR1B |= (0<<CS12)|(1<<CS11)|(0<<CS10);	//set prescalar
+	TCCR1A |= (1<<COM1A1)|(0<<COM1A0);	//set compare output mode
+	TCCR1A |= (1<<WGM11)|(0<<WGM10);	//set output mode
+	TCCR1B |= (1<<WGM13)|(1<<WGM12);
+	ICR1 = 39999;
+	OCR1A = 0;
 	return;
 }
 
-// function for setting PWM
-void set_duty(U8* duty)
+// set duty cycle of throttle
+void set_duty(unsigned int  duty)
 {
-	// calc ticks to count
-	U16 duty_count = (MAX_THROTTLE-MIN_THROTTLE)*(*duty/255)+MIN_THROTTLE;
-	OCR1AH |= (duty_count>>8);	//set how high to count
-	OCR1AL |= duty_count;
+	OCR1A = (unsigned int)(MIN_THROTTLE-(unsigned int)(((MIN_THROTTLE-MAX_THROTTLE)*duty)/255));
 	return;
 }
 
@@ -98,8 +87,10 @@ void main(void)
 {
     	// setup timer for PWM to control motor 
 	pwm_init();
-    	adc_init();
-	serial_init();
+    	//adc_init();
+	//serial_init();
+	set_duty(255);
+	//OCR1A = ;
 
 	//initialize can
 	while(can_init(0) != 1);
@@ -127,7 +118,7 @@ void main(void)
 		switch(can_message.id.std)
 		{
 			case THROTTLE_ID:
-				set_duty(can_message.pt_data);
+				//set_duty(can_message.pt_data);
 				break;
 			case CLUTCH_ID:
 				break;

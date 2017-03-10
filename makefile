@@ -11,7 +11,7 @@ build: $(TARGET)
 	avr-gcc -mmcu=at90can128 -g $(TARGET) -o $(OUTPUT)
 
 flash: $(OUTPUT)
-	avrdude -p c128 -P /dev/$(USB) -c jtag1 -U flash:w:$(OUTPUT) 
+	avrdude -p c128 -P /dev/$(USB) -c jtag1 -U flash:w:$(OUTPUT)
 
 ## Clean target
 .PHONY: clean
