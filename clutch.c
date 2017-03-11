@@ -74,7 +74,19 @@ void pwm_init()
 // set duty cycle of throttle
 void set_duty(unsigned int  duty)
 {
-	OCR1A = (unsigned int)(MIN_THROTTLE-(unsigned int)(((MIN_THROTTLE-MAX_THROTTLE)*duty)/255));
+	U16 diff = MIN_THROTTLE - MAX_THROTTLE;
+    //send_message("Diff between max and min \t");
+    //send_int(diff);
+    float percent = duty/255;
+    U16 pos_rel_to_min = percent*diff;
+    //send_message("pos_relative to min \t");
+    //send_int(pos_rel_to_min);
+    U16 final = MIN_THROTTLE - pos_rel_to_min;
+    //send_message("Final\t");
+    //send_int(final);
+    OCR1A = final;
+    //send_message("OCR1A: \t");
+    //send_int(OCR1A);
 	return;
 }
 
@@ -101,8 +113,6 @@ void main(void)
     adc_init();
 	pwm_init();
 	serial_init();
-	set_duty(255);
-	//OCR1A = ;
 	
 	// pin for turning one motor
 	DDRA |= (1<<PA1);
@@ -120,17 +130,19 @@ void main(void)
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
 	sei(); 				// enable global inturrupts
 	
-	U8 test = 100;
-	//set_duty(&test);	
+	U16 test = 255;
+    send_int(OCR1A);
+    send_char('\n');
+    send_message("Value of OCR1A at call");
+	set_duty(test);	
 	
 	// execution loop
-	while(1)
-       	{
+	while(1){
 		// load in message
 		can_message.cmd = CMD_RX_DATA;
 		while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
 		while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-
+        send_int(test);    
 		// check id
 		switch(can_message.id.std)
 		{
