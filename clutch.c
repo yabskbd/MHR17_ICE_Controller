@@ -47,9 +47,7 @@ void send_message(char* message)
 	return;
 }
 
-<<<<<<< HEAD
 // initialize pwm for throttle
-=======
 void send_int(U16 data)
 {
 	// wait for transmit buffer to be empty
@@ -61,7 +59,6 @@ void send_int(U16 data)
 }
 
 // OC0A is the pin outputtng the pwm signal
->>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 void pwm_init()
 {
 	DDRB |= (1<<PB5);	// set as output
@@ -101,10 +98,9 @@ ISR(INT0_vect)
 void main(void)
 {
     	// setup timer for PWM to control motor 
+    adc_init();
 	pwm_init();
-<<<<<<< HEAD
-    	//adc_init();
-	//serial_init();
+	serial_init();
 	set_duty(255);
 	//OCR1A = ;
 	
@@ -116,11 +112,7 @@ void main(void)
 	while(can_init(0) != 1);
 	st_cmd_t can_message;
 	can_id_t can_id;
-=======
-    adc_init();
-	serial_init();
 	send_message("Hello World");
->>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 
     // incremental encoder counter setup
 	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
@@ -133,20 +125,11 @@ void main(void)
 	
 	// execution loop
 	while(1)
-<<<<<<< HEAD
        	{
 		// load in message
 		can_message.cmd = CMD_RX_DATA;
 		while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
 		while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-=======
-    {
-		//send_char('a');
-        //send_char('\n');
-        //U16 okay = 24;
-        //send_int(okay);
-	}
->>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 
 		// check id
 		switch(can_message.id.std)
