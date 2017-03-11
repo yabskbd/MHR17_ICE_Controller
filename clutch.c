@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include "config.h"
 #include "libraries/lib_mcu/can/can_lib.h"
+#include <stdio.h>
 
 #define UART_BAUDRATE 9600UL
 #define BAUD_PRESCALE ((F_CPU / (UART_BAUDRATE * 16UL))-1)
@@ -46,7 +47,21 @@ void send_message(char* message)
 	return;
 }
 
+<<<<<<< HEAD
 // initialize pwm for throttle
+=======
+void send_int(U16 data)
+{
+	// wait for transmit buffer to be empty
+	while(!(UCSR0A & (1<<UDRE0)));
+    char str[7];
+    sprintf(str,"%d",data);
+	send_message(str);
+    return;
+}
+
+// OC0A is the pin outputtng the pwm signal
+>>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 void pwm_init()
 {
 	DDRB |= (1<<PB5);	// set as output
@@ -87,6 +102,7 @@ void main(void)
 {
     	// setup timer for PWM to control motor 
 	pwm_init();
+<<<<<<< HEAD
     	//adc_init();
 	//serial_init();
 	set_duty(255);
@@ -100,8 +116,13 @@ void main(void)
 	while(can_init(0) != 1);
 	st_cmd_t can_message;
 	can_id_t can_id;
+=======
+    adc_init();
+	serial_init();
+	send_message("Hello World");
+>>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 
-    	// incremental encoder counter setup
+    // incremental encoder counter setup
 	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
 	PORTD |= (1<<PD0);	        // enable pullup resistor
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
@@ -112,11 +133,20 @@ void main(void)
 	
 	// execution loop
 	while(1)
+<<<<<<< HEAD
        	{
 		// load in message
 		can_message.cmd = CMD_RX_DATA;
 		while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
 		while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
+=======
+    {
+		//send_char('a');
+        //send_char('\n');
+        //U16 okay = 24;
+        //send_int(okay);
+	}
+>>>>>>> fc45a57ccf0a2be9f7c3b6b02f0c1e14f8665dba
 
 		// check id
 		switch(can_message.id.std)
