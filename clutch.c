@@ -101,7 +101,7 @@ void adc_init()
 }
 
 
-int counter;
+U16 counter = 0;
 ISR(INT0_vect)
 {
 	counter++;
@@ -115,8 +115,8 @@ void main(void)
 	serial_init();
 	
 	// pin for turning one motor
-	DDRA |= (1<<PA1);
-	PORTA |= (1<<PA1);
+	DDRA |= (1<<PA1); //Set reg to be an ouput
+	PORTA = (0<<PA1); //Setting bit high or low 
 
 	//initialize can
 	while(can_init(0) != 1);
@@ -125,8 +125,9 @@ void main(void)
 	send_message("Hello World");
 
     // incremental encoder counter setup
-	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
-	PORTD |= (1<<PD0);	        // enable pullup resistor
+	DDRD  &= ~(1<<PD0);              // set PD0 as intput, used for INT0
+	PORTD &= ~(1<<PD0);	        // enable pullup resistor
+    EIMSK |= (1 << INT0);
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
 	sei(); 				// enable global inturrupts
 	
@@ -140,9 +141,11 @@ void main(void)
 	while(1){
 		// load in message
 		can_message.cmd = CMD_RX_DATA;
-		while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
-		while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-        send_int(test);    
+		//while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
+		//while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
+        //send_int(PIND & (1<<PIND0));
+        send_int(counter);
+        send_char('\t');
 		// check id
 		switch(can_message.id.std)
 		{
