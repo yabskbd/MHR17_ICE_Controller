@@ -58,7 +58,7 @@ void send_int(U16 data)
     return;
 }
 
-// OC0A is the pin outputtng the pwm signal
+// OC1A is the pin outputtng the pwm signal
 void pwm_init()
 {
 	DDRB |= (1<<PB5);	// set as output
@@ -67,7 +67,7 @@ void pwm_init()
 	TCCR1A |= (1<<WGM11)|(0<<WGM10);	//set output mode
 	TCCR1B |= (1<<WGM13)|(1<<WGM12);
 	ICR1 = 39999;
-	OCR1A = 0;
+	OCR1A = 20000;
 	return;
 }
 
@@ -75,18 +75,20 @@ void pwm_init()
 void set_duty(unsigned int  duty)
 {
 	U16 diff = MIN_THROTTLE - MAX_THROTTLE;
-    //send_message("Diff between max and min \t");
-    //send_int(diff);
-    float percent = duty/255;
-    U16 pos_rel_to_min = percent*diff;
-    //send_message("pos_relative to min \t");
-    //send_int(pos_rel_to_min);
+    send_message("Diff between max and min \t");
+    send_int(diff);
+    U16 percent = (duty*100)/255;
+    send_message("Percent");
+    send_int(percent);
+    U16 pos_rel_to_min = (percent)*(diff/100);
+    send_message("pos_relative to min \t");
+    send_int((int)(pos_rel_to_min));
     U16 final = MIN_THROTTLE - pos_rel_to_min;
-    //send_message("Final\t");
-    //send_int(final);
+    send_message("Final\t");
+    send_int(final);
     OCR1A = final;
-    //send_message("OCR1A: \t");
-    //send_int(OCR1A);
+    send_message("OCR1A: \t");
+    send_int(OCR1A);
 	return;
 }
 
@@ -105,6 +107,12 @@ U16 counter = 0;
 ISR(INT0_vect)
 {
 	counter++;
+    if(counter >= 16)
+    {
+        counter = 0;
+        PORTA |= (1<<PA1);
+    }
+    return;
 }
 
 void main(void)
@@ -116,38 +124,37 @@ void main(void)
 	
 	// pin for turning one motor
 	DDRA |= (1<<PA1); //Set reg to be an ouput
-	PORTA = (0<<PA1); //Setting bit high or low 
+	PORTA &= ~(1<<PA1); //Setting bit high or low 
 
 	//initialize can
-	while(can_init(0) != 1);
-	st_cmd_t can_message;
-	can_id_t can_id;
-	send_message("Hello World");
+	//while(can_init(0) != 1);
+	//st_cmd_t can_message;
+	//can_id_t can_id;
 
     // incremental encoder counter setup
 	DDRD  &= ~(1<<PD0);              // set PD0 as intput, used for INT0
-	PORTD &= ~(1<<PD0);	        // enable pullup resistor
+	PORTD |= (1<<PD0);	        // enable pullup resistor
     EIMSK |= (1 << INT0);
 	EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
 	sei(); 				// enable global inturrupts
 	
-	U16 test = 255;
-    send_int(OCR1A);
-    send_char('\n');
-    send_message("Value of OCR1A at call");
-	set_duty(test);	
+	//U16 test = 255;
+    //send_int(OCR1A);
+    //send_char('\n');
+    //send_message("Value of OCR1A at call");
+	set_duty(0);	
 	
 	// execution loop
 	while(1){
 		// load in message
-		can_message.cmd = CMD_RX_DATA;
+		//can_message.cmd = CMD_RX_DATA;
 		//while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
 		//while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-        //send_int(PIND & (1<<PIND0));
+       //send_int(PIND & (1<<PIND0));
         send_int(counter);
         send_char('\t');
 		// check id
-		switch(can_message.id.std)
+		/*switch(can_message.id.std)
 		{
 			case THROTTLE_ID:
 				//set_duty(can_message.pt_data);
@@ -156,7 +163,7 @@ void main(void)
 				break;
 			default:
 				break;
-		}
+		}*/
 	}
 	return;
 }
