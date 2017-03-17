@@ -85,7 +85,8 @@ ISR(INT0_vect)
 
 void main(void)
 {
-    	// setup timer for PWM to control motor 
+	send_message("Start main");
+    // setup timer for PWM to control motor 
 	pwm_init();
     	//adc_init();
 	//serial_init();
@@ -100,7 +101,7 @@ void main(void)
 	while(can_init(0) != 1);
 	st_cmd_t can_message;
 	can_id_t can_id;
-
+    send_message("CAN INIT Successful");
     	// incremental encoder counter setup
 	DDRD  |= (1<<PD0);              // set PD0 as intput, used for INT0
 	PORTD |= (1<<PD0);	        // enable pullup resistor
@@ -116,13 +117,13 @@ void main(void)
 		can_message.cmd = CMD_RX_DATA;
 		while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
 		while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-
+        send_message("Status Good \n");
 		// check id
 		switch(can_message.id.std)
 		{
 			case THROTTLE_ID:
 				//set_duty(can_message.pt_data);
-                send_message("Recieved CAN message!!")
+                send_message("Recieved CAN message!!");
 				break;
 			case CLUTCH_ID:
 				break;
