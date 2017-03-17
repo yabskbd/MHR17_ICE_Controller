@@ -91,6 +91,10 @@ void main(void)
 	//serial_init();
 	set_duty(255);
 	//OCR1A = ;
+	
+	// pin for turning one motor
+	DDRA |= (1<<PA1);
+	PORTA |= (1<<PA1);
 
 	//initialize can
 	while(can_init(0) != 1);
