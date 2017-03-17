@@ -75,20 +75,29 @@ void pwm_init()
 void set_duty(unsigned int  duty)
 {
     U16 diff = MIN_THROTTLE - MAX_THROTTLE;
-    send_message("Diff between max and min \t");
-    send_int(diff);
+    
+    //send_message("Diff between max and min \t");
+    //send_int(diff);
+    
     U16 percent = (duty*100)/255;
-    send_message("Percent");
-    send_int(percent);
+    
+    //send_message("Percent");
+    //send_int(percent);
+    
     U16 pos_rel_to_min = (percent)*(diff/100);
-    send_message("pos_relative to min \t");
-    send_int((int)(pos_rel_to_min));
+    
+    //send_message("pos_relative to min \t");
+   //send_int((int)(pos_rel_to_min));
+    
     U16 final = MIN_THROTTLE - pos_rel_to_min;
-    send_message("Final\t");
-    send_int(final);
+    
+    //send_message("Final\t");
+    //send_int(final);
+    
     OCR1A = final;
-    send_message("OCR1A: \t");
-    send_int(OCR1A);
+    
+    //send_message("OCR1A: \t");
+    //send_int(OCR1A);
     return;
 }
 
@@ -127,9 +136,10 @@ void main(void)
     PORTA &= ~(1<<PA1); //Setting bit high or low 
 
     //initialize can
-    //while(can_init(0) != 1);
-    //st_cmd_t can_message;
-    //can_id_t can_id;
+    while(can_init(0) != 1);
+    st_cmd_t can_message;
+    can_id_t can_id;
+    send_message("CAN INIT successful");
 
     // incremental encoder counter setup
     DDRD  &= ~(1<<PD0);              // set PD0 as intput, used for INT0
@@ -138,21 +148,54 @@ void main(void)
     EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
     sei(); 				// enable global inturrupts
 	
-    //U16 test = 255;
-    //send_int(OCR1A);
-    //send_char('\n');
-    //send_message("Value of OCR1A at call");
+    /*//Setting Duty Cycle Debug:
+    U16 test = 255;
+    send_int(OCR1A);
+    send_char('\n');
+    send_message("Value of OCR1A at call");
     set_duty(0);	
-	
+	//End of Duty Cycle Debug */
+    //
+
     // execution loop
     while(1){
-        // load in message
-        //can_message.cmd = CMD_RX_DATA;
-        //while(can_cmd(&can_message) != CAN_CMD_ACCEPTED);
-        //while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-        //send_int(PIND & (1<<PIND0));
+        
+        /*//Send CAN Message Seq
+        send_message("Sending Message?");
+        U8 data_send = 100;
+        st_cmd_t toSend;
+        toSend.pt_data = &data_send;
+        toSend.id.std = 0x50;
+        toSend.dlc = 1;
+        toSend.cmd = CMD_TX_DATA;
+
+        while(can_cmd(&toSend) != CAN_CMD_ACCEPTED);
+        while(can_get_status(&toSend) == CAN_STATUS_NOT_COMPLETED);
+        send_message("Sent");
+        //Send CAN Message Seq End */
+        
+
+        //Recieved CAN  message Seq
+        send_message("Setup Recieve: \t");
+        U8 buf[8];
+        can_message.pt_data = &buf[0];
+        can_message.cmd = CMD_RX_DATA;
+        while(can_cmd(&can_message) != CAN_CMD_ACCEPTED){
+            send_message("CAN Eror check:");
+            send_int(can_get_status(&can_message));
+        }
+        while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
+        send_message("Recieved Message");
+        send_int(buf[0]);
+        send_int(can_message.id.std);
+        //Recieved CAN Message Seq End */
+
+        /*//Checking Clutch state:
+        send_int(PIND & (1<<PIND0));
         send_int(counter);
         send_char('\t');
+        ///Clutch State debug code */
+        
         // check id
         /*switch(can_message.id.std)
         {
