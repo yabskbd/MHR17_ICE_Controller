@@ -105,7 +105,6 @@ void main(void)
 	
 	U8 test = 100;
 	//set_duty(&test);	
-	while(1);
 	// execution loop
 	while(1)
        	{
@@ -119,6 +118,7 @@ void main(void)
 		{
 			case THROTTLE_ID:
 				//set_duty(can_message.pt_data);
+                send_message("Recieved CAN message!!")
 				break;
 			case CLUTCH_ID:
 				break;
