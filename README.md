@@ -1,5 +1,5 @@
-# MHR17_ICE_Controller
-# Code for Clutch and Shifting DC Brushless Motors
+# MHR17 ICE Controller
+## Code for Clutch (DC Brushless Motors) and Throttle (Servo)
 
 ## Serial
     Serial output of debuging is on TXD0(Pin 14 EXT1)
