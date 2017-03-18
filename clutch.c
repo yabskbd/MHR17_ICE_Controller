@@ -13,6 +13,10 @@
 #define MIN_THROTTLE	3650
 #define MAX_THROTTLE	2050
 
+#define CLUTCH_ON 0
+#define CLUTCH_OFF 1
+#define CLUTCH_CW 0 //For Setting direction facing motor
+#define CLUTCH_CCW 1 //For Setting direction facing motor
 // setup and initialize UART for debugging messages
 void serial_init()
 {
@@ -25,6 +29,18 @@ void serial_init()
     UCSR0C |= (0<<UCSZ02)|(1<<UCSZ01)|(1<<UCSZ01);	//8-bit character size
     UCSR0B |= (1<<TXEN0);				//enable transmitter
     return;
+}
+
+void GPIO_init(){
+    
+    //SET REG to OUTPUT
+    DDRA |= (1<<PA1); //For Clutch_Motor On/off
+    DDRA |= (1<<PA2); //For Clutch_Motor Direction
+
+    //SET REG to INPUT
+    DDRD  &= ~(1<<PD0); //Used for INT0 (interupt for encoder_count)
+    PORTD &= ~(1<<PD0); //Disable pullup resistor for PD0
+
 }
 
 // functions for sending debug messages over serial bus
@@ -75,32 +91,52 @@ void pwm_init()
 void set_duty(unsigned int  duty)
 {
     U16 diff = MIN_THROTTLE - MAX_THROTTLE;
-    
     //send_message("Diff between max and min \t");
     //send_int(diff);
-    
     U16 percent = (duty*100)/255;
-    
     //send_message("Percent");
     //send_int(percent);
-    
     U16 pos_rel_to_min = (percent)*(diff/100);
-    
     //send_message("pos_relative to min \t");
    //send_int((int)(pos_rel_to_min));
-    
     U16 final = MIN_THROTTLE - pos_rel_to_min;
-    
     //send_message("Final\t");
-    //send_int(final);
-    
+    //send_int(final);    
     OCR1A = final;
-    
     //send_message("OCR1A: \t");
     //send_int(OCR1A);
     return;
 }
 
+void clutch_motor_power(U8 on_off){
+
+    switch(on_off){
+        case (CLUTCH_ON):
+            PORTA &= ~(1<<PA1);
+            break;
+        case(CLUTCH_OFF):
+            PORTA |= (1<<PA1); //Setting bit High
+            break;
+        default:
+            break;
+    }
+
+}
+
+void clutch_dir(U8 dir){
+
+    switch(dir){
+        case (CLUTCH_CW):
+            PORTA &= ~(1<<PA2);
+            break;
+        case(CLUTCH_CCW):
+            PORTA |= (1<<PA2); //Setting bit High
+            break;
+        default:
+            break;
+    }
+
+}
 void adc_init()
 {
     // turn on adc
@@ -130,11 +166,11 @@ void main(void)
     adc_init();
     pwm_init();
     serial_init();
-	
-    // pin for turning one motor
-    DDRA |= (1<<PA1); //Set reg to be an ouput
-    PORTA &= ~(1<<PA1); //Setting bit high or low 
+    GPIO_init(); 
 
+    clutch_motor_power(CLUTCH_ON); //initial motor off
+    clutch_dir(CLUTCH_CW);
+    
     //initialize can
     while(can_init(0) != 1);
     st_cmd_t can_message;
@@ -142,18 +178,19 @@ void main(void)
     send_message("CAN INIT successful");
 
     // incremental encoder counter setup
-    DDRD  &= ~(1<<PD0);              // set PD0 as intput, used for INT0
-    PORTD |= (1<<PD0);	        // enable pullup resistor
-    EIMSK |= (1 << INT0);
+    //GPIO PD0 enabled as input in GPIO_init
+    EIMSK |= (1 << INT0); //Set INT0 
     EICRA |= (1<<ISC00)|(1<<ISC01); // set interupt to trigger on rising edge of INT0
-    sei(); 				// enable global inturrupts
-	
-    /*//Setting Duty Cycle Debug:
+    
+    sei(); // enable global inturrupts
+    PORTD &= ~(1<<PD0); //Disable pullup resistor for PD0
+
+    //Setting Duty Cycle Debug:
     U16 test = 255;
     send_int(OCR1A);
     send_char('\n');
     send_message("Value of OCR1A at call");
-    set_duty(0);	
+    set_duty(255);	
 	//End of Duty Cycle Debug */
     //
 
@@ -173,11 +210,10 @@ void main(void)
         while(can_get_status(&toSend) == CAN_STATUS_NOT_COMPLETED);
         send_message("Sent");
         //Send CAN Message Seq End */
-        
-
-        //Recieved CAN  message Seq
-        send_message("Setup Recieve: \t");
+          
         U8 buf[8];
+        /*//Recieved CAN  message Seq
+        send_message("Setup Recieve: \t");
         can_message.pt_data = &buf[0];
         can_message.cmd = CMD_RX_DATA;
         while(can_cmd(&can_message) != CAN_CMD_ACCEPTED){
@@ -185,28 +221,33 @@ void main(void)
             send_int(can_get_status(&can_message));
         }
         while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
+        //Recive CAN LOOP END*/
+        /*//Check Message on the line
         send_message("Recieved Message");
         send_int(buf[0]);
         send_int(can_message.id.std);
         //Recieved CAN Message Seq End */
 
-        /*//Checking Clutch state:
-        send_int(PIND & (1<<PIND0));
+        ///Checking Clutch state:
+        //send_int(PIND & (1<<PIND0)); //Read value of PD0
         send_int(counter);
         send_char('\t');
         ///Clutch State debug code */
         
-        // check id
-        /*switch(can_message.id.std)
+        //CAN ID specific Excution:
+        switch(can_message.id.std)
         {
             case THROTTLE_ID:
-                //set_duty(can_message.pt_data);
+                send_message("Duty_CAN: \t");
+                send_int(buf[0]);
+                set_duty(buf[0]);
                 break;
             case CLUTCH_ID:
+
                 break;
             default:
                 break;
-        }*/
+        }//End of Switch 
     }
     return;
 }
