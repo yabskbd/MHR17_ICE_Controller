@@ -93,10 +93,9 @@ void set_duty(unsigned int  duty)
     U16 diff = MIN_THROTTLE - MAX_THROTTLE;
     //send_message("Diff between max and min \t");
     //send_int(diff);
-    U16 percent = (duty*100)/255;
     //send_message("Percent");
     //send_int(percent);
-    U16 pos_rel_to_min = (percent)*(diff/100);
+    U16 pos_rel_to_min = (duty)*(diff/100);
     //send_message("pos_relative to min \t");
    //send_int((int)(pos_rel_to_min));
     U16 final = MIN_THROTTLE - pos_rel_to_min;
@@ -124,7 +123,8 @@ void clutch_motor_power(U8 on_off){
 }
 
 void clutch_dir(U8 dir){
-
+    
+    clutch_motor_power(CLUTCH_ON); //initiallize motor on
     switch(dir){
         case (CLUTCH_CW):
             PORTA &= ~(1<<PA2);
@@ -155,7 +155,7 @@ ISR(INT0_vect)
     if(counter >= 16)
     {
         counter = 0;
-        PORTA |= (1<<PA1);
+        clutch_motor_power(CLUTCH_OFF);
     }
     return;
 }
@@ -168,8 +168,7 @@ void main(void)
     serial_init();
     GPIO_init(); 
 
-    clutch_motor_power(CLUTCH_ON); //initial motor off
-    clutch_dir(CLUTCH_CW);
+    clutch_motor_power(CLUTCH_OFF); //initial motor off
     
     //initialize can
     while(can_init(0) != 1);
@@ -190,7 +189,7 @@ void main(void)
     send_int(OCR1A);
     send_char('\n');
     send_message("Value of OCR1A at call");
-    set_duty(255);	
+    set_duty(50);	
 	//End of Duty Cycle Debug */
     //
 
@@ -212,7 +211,7 @@ void main(void)
         //Send CAN Message Seq End */
           
         U8 buf[8];
-        /*//Recieved CAN  message Seq
+        //Recieved CAN  message Seq
         send_message("Setup Recieve: \t");
         can_message.pt_data = &buf[0];
         can_message.cmd = CMD_RX_DATA;
@@ -222,7 +221,7 @@ void main(void)
         }
         while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
         //Recive CAN LOOP END*/
-        /*//Check Message on the line
+        //Check Message on the line
         send_message("Recieved Message");
         send_int(buf[0]);
         send_int(can_message.id.std);
@@ -230,8 +229,8 @@ void main(void)
 
         ///Checking Clutch state:
         //send_int(PIND & (1<<PIND0)); //Read value of PD0
-        send_int(counter);
-        send_char('\t');
+        //send_int(counter);
+        //send_char('\t');
         ///Clutch State debug code */
         
         //CAN ID specific Excution:
@@ -243,7 +242,8 @@ void main(void)
                 set_duty(buf[0]);
                 break;
             case CLUTCH_ID:
-
+                
+                clutch_dir(buf[0]);
                 break;
             default:
                 break;
