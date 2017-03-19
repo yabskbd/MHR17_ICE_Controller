@@ -189,7 +189,7 @@ void main(void)
     send_int(OCR1A);
     send_char('\n');
     send_message("Value of OCR1A at call");
-    set_duty(50);	
+    set_duty(0);
 	//End of Duty Cycle Debug */
     //
 
