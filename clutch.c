@@ -124,7 +124,6 @@ void clutch_motor_power(U8 on_off){
 
 void clutch_dir(U8 dir){
     
-    clutch_motor_power(CLUTCH_ON); //initiallize motor on
     switch(dir){
         case (CLUTCH_CW):
             PORTA &= ~(1<<PA2);
@@ -135,7 +134,7 @@ void clutch_dir(U8 dir){
         default:
             break;
     }
-
+    clutch_motor_power(CLUTCH_ON); //initiallize motor on
 }
 void adc_init()
 {
@@ -152,7 +151,7 @@ U16 counter = 0;
 ISR(INT0_vect)
 {
     counter++;
-    if(counter >= 16)
+    if(counter >= 1)
     {
         counter = 0;
         clutch_motor_power(CLUTCH_OFF);
@@ -189,7 +188,7 @@ void main(void)
     send_int(OCR1A);
     send_char('\n');
     send_message("Value of OCR1A at call");
-    set_duty(50);	
+    set_duty(0);
 	//End of Duty Cycle Debug */
     //
 
