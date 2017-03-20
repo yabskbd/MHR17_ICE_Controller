@@ -19,4 +19,5 @@
     Uses PWM for servo 
     Ouput on: PB5 (Pin 29)
     
-
+## CW disengages clutch
+## CCW engages clutch
