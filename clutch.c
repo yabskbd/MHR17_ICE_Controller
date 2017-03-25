@@ -148,10 +148,11 @@ void adc_init()
 
 
 U16 counter = 0;
+U16 COUNT_LEN = 1;
 ISR(INT0_vect)
 {
     counter++;
-    if(counter >= 1)
+    if(counter >= COUNT_LEN)
     {
         counter = 0;
         clutch_motor_power(CLUTCH_OFF);
@@ -244,6 +245,8 @@ void main(void)
                 
                 clutch_dir(buf[0]);
                 break;
+            case CLUTCH_COUNT:
+                COUNT_LEN = buf[0];
             default:
                 break;
         }//End of Switch 

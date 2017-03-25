@@ -41,6 +41,7 @@
 //CAN IDs
 #define	THROTTLE_ID	0x20
 #define CLUTCH_ID	0x30
+#define CLUTCH_COUNT 0x40
 #define	STATUS_ID	0x60
 
 	// -------------- MISCELLANEOUS
