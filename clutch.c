@@ -170,7 +170,8 @@ void clutch_timer_init()
     TCCR3B |= (0<<WGM33)|(0<<WGM32);    //set normal mode
     TCCR3A |= (0<<WGM31)|(0<<WGM30);
     TIMSK3 |= (1<<OCIE3A); // enable interrupt on compare match
-    OCR3A = 31250*2;
+    //OCR3A = 31250;
+    OCR3A = 62500;
 }
 
 ISR(TIMER3_COMPA_vect)
