@@ -52,7 +52,8 @@
 #define SWITCH_ON_ID 0x201
 #define ENOP_ID 0x201
 #define SDO_ID 0x601
-
+//Shift up DSPACE: 0x10
+//Shift down DPSACE 0x05
 
 	// -------------- MISCELLANEOUS
     // Using TIMER_2 as RTC

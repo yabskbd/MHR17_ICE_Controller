@@ -5,13 +5,116 @@
 
 #define BOOT_UP_ID 0x701
 #define POSITION_MESSAGE 0x281
-
+#define CHECK_ENABLED_ID 0x181
+#define DSPACE_SHIFT_UP 0x10
+#define DSPACE_SHIFT_DOWN 0x05
 // the cs pin of the version after v1.1 is default to D9
 // v0.9b and v1.0 is default D10
 const int SPI_CS_PIN = 9;
 
 MCP_CAN CAN(SPI_CS_PIN);                                    // Set CS pin
+void wait_for_bootup_message(MCP_CAN CAN);
 
+int init_shifting(MCP_CAN CAN){
+    INT8U len = 8;
+    INT8U buf[8];
+    INT8U i = 0;
+    INT32U id;
+    
+    // reset comm
+    Serial.println("Reseting comm:");
+    id = 0x000;
+    len = 2;
+    buf[0] = 0x82;
+    buf[1] = 0x01;
+    CAN.sendMsgBuf(id, 0, len, buf);
+    wait_for_bootup_message(CAN);
+    
+    
+    // start CAN open node
+    Serial.println("Starting CAN node:");
+    id = 0x000;
+    len = 2;
+    buf[0] = 0x01;
+    buf[1] = 0x01;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    //delay(100);
+    // SHUTDOWN
+    Serial.println("Shutdown driver:");
+    id = 0x201;
+    len = 2;
+    buf[0] = 0x06;
+    buf[1] = 0x00;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    // SWITCHON
+    Serial.println("SWITCHON driver:");
+    id = 0x201;
+    len = 2;
+    buf[0] = 0x07;
+    buf[1] = 0x00;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    // ENOP
+    Serial.println("ENOP driver:");
+    id = 0x201;
+    len = 2;
+    buf[0] = 0x0F;
+    buf[1] = 0x00;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    //Check If enabled
+    Serial.println("Check if Enabled");
+    while(CAN_MSGAVAIL != CAN.checkReceive())
+    {
+        Serial.print('.');
+        i++;
+        if(i > 60)
+        {
+            Serial.print('\n');
+            i = 0;
+        }
+        delay(10);
+    }
+    CAN.readMsgBuf(&len, buf);
+    id = CAN.getCanId();
+
+    if((id==CHECK_ENABLED_ID)&&(buf[0] != 0x21)){
+      return 0; //RETURN and re do this whole thing
+    }
+    Serial.println("Shifting Enabled");
+
+    // set to profile position mode
+    delay(1000);
+    id = 0x601;
+    len = 8;
+    buf[0] = 0x2F;
+    buf[1] = 0x60;
+    buf[2] = 0x60;
+    buf[3] = 0x00;
+    buf[4] = 0x01;
+    buf[5] = 0x00;
+    buf[6] = 0x00;
+    buf[7] = 0x00;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    // check status of mode
+    delay(100);
+    id = 0x601;
+    len = 8;
+    buf[0] = 0x40;
+    buf[1] = 0x60;
+    buf[2] = 0x60;
+    buf[3] = 0x00;
+    buf[4] = 0x00;
+    buf[5] = 0x00;
+    buf[6] = 0x00;
+    buf[7] = 0x00;
+    CAN.sendMsgBuf(id, 0, len, buf);
+
+    return 1;
+}
 
 void wait_for_bootup_message(MCP_CAN CAN) {
   // check for bootup message
@@ -57,192 +160,22 @@ void setup()
 
     Serial.print("\n\n");
     Serial.println("CAN BUS Shield init ok!");
-
-    INT8U len = 8;
-    INT8U buf[8];
-    INT32U id;
-    
-    // reset comm
-    Serial.println("Reseting comm:");
-    id = 0x000;
-    len = 2;
-    buf[0] = 0x82;
-    buf[1] = 0x01;
-    CAN.sendMsgBuf(id, 0, len, buf);
-    wait_for_bootup_message(CAN);
-    
-    /*// Entering Preop mode
-    Serial.println("Entering preop mode");
-    id = 0x000;
-    len = 2;
-    buf[0] = 0x80;
-    buf[1] = 0x01;
-    CAN.sendMsgBuf(id, 0, len, buf);
-    //delay(100);*/
-    
-    // start CAN open node
-    Serial.println("Starting CAN node:");
-    id = 0x000;
-    len = 2;
-    buf[0] = 0x01;
-    buf[1] = 0x01;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    //delay(100);
-    // SHUTDOWN
-    Serial.println("Shutdown driver:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x06;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    // SWITCHON
-    Serial.println("SWITCHON driver:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x07;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    // ENOP
-    Serial.println("ENOP driver:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x0F;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    /*// check for bootup message
-    int i = 0;
-    Serial.print("Waiting for bootup message:");
-    while(CAN_MSGAVAIL != CAN.checkReceive())
-    {
-        Serial.print('.');
-        i++;
-        if(i > 60)
-        {
-            Serial.print('\n');
-            i = 0;
-        }
-        delay(10);
-    }
-    CAN.readMsgBuf(&len, buf);
-    id = CAN.getCanId();
-
-    // check for bootup message
-    if((id==BOOT_UP_ID)&&(buf[0]==0x00))
-    {
-        Serial.print("Boot up message recieved");
-    }
-    Serial.print('\n');*/
-
-    /*// switch drive to "Ready to Switch on state"
-    Serial.println("Enter Ready to Switch on state:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x06;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    // switch drive to "Switched On State
-    Serial.println("Enter Switched On State:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x07;
-    buf[1] = 0x06;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    // enter operation Enabled state
-    Serial.println("Enter Operation Enabled mode:");
-    id = 0x201;
-    len = 2;
-    buf[0] = 0x0F;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);*/
-
-    /*// set mode of operation
-    id = 0x201;
-    len = 5;
-    buf[0] = 0x60;
-    buf[1] = 0x60;
-    buf[2] = 0x00;
-    buf[3] = 0x01;
-    buf[4] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-    delay(1000);*/
-
-    /*// check mode of operation
-     * //consider using a 1 in RTR
-    id = 0x181;
-    len = 2;
-    buf[0] = 0x60;
-    buf[1] = 0x60;
-    CAN.sendMsgBuf(id, 0, len, buf);
-    delay(1000);*/
-
-    /*//enter enable operation command
-    Serial.println("Enable Controller Operation:");
-    len = 2;
-    buf[0] = 0x0F;
-    buf[1] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);*/
-
-/*
-    // enter new setpoint of 240000
-    len = 6;
-    id = 0x301;
-    buf[0] = 0x00; 
-    buf[1] = 0x20;
-    buf[2] = 0x80;
-    buf[3] = 0xA9;
-    buf[4] = 0x03;
-    buf[4] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-    delay(100);*/
-
-    /*//enter enable operation command
-    id = 0x181;
-    len = 2;
-    buf[0] = 0x7A;
-    buf[1] = 0x60;
-    CAN.sendMsgBuf(id, 0, len, buf);*/
-
-    // set to profile position mode
-    delay(1000);
-    id = 0x601;
-    len = 8;
-    buf[0] = 0x2F;
-    buf[1] = 0x60;
-    buf[2] = 0x60;
-    buf[3] = 0x00;
-    buf[4] = 0x01;
-    buf[5] = 0x00;
-    buf[6] = 0x00;
-    buf[7] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-    // check status of mode
-    delay(100);
-    id = 0x601;
-    len = 8;
-    buf[0] = 0x40;
-    buf[1] = 0x60;
-    buf[2] = 0x60;
-    buf[3] = 0x00;
-    buf[4] = 0x00;
-    buf[5] = 0x00;
-    buf[6] = 0x00;
-    buf[7] = 0x00;
-    CAN.sendMsgBuf(id, 0, len, buf);
-
-   
-    
+       
 }
 
 void loop()
 {   
 
+    
+    INT8U shifting_ready = 0;
+
+    while(!init_shifting){
+        //Wating for shifting to be enabled
+    }
+    
+    
+    //Ready to recieve commands to shift from dSPACE
+    Serial.println("Ready to recieve shfting commands");
     INT8U len = 8;
     INT8U buf1[8];
     INT32U id;
@@ -276,9 +209,16 @@ void loop()
             case 0x181:
             {
               if (buf1[0] == 0x21) {
+                //Something Good Happened
+              }
+              break;
+            }
+            case DSPACE_SHIFT_UP:
+            {
+            
                 Serial.println("Moving!");
                  delay(100);
-                // move incrementally 2400000
+                // move incrementally POSTIVE + 2400000
                 id = 0x601;
                 len = 8;
                 buf1[0] = 0x23;
@@ -289,44 +229,7 @@ void loop()
                 buf1[5] = 0xA9;
                 buf1[6] = 0x03;
                 buf1[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf1);
-            
-               /* id = 0x601;
-                len = 8;
-                buf[0] = 0x2B
-                buf[1] = 0x83;
-                buf[2] = 0x60;
-                buf[3] = 0x00;
-                buf[4] = 0xE8;
-                buf[5] = 0x03;
-                buf[6] = 0x00;
-                buf[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf);
-            
-                id = 0x601;
-                len = 8;
-                buf[0] = 0x2B
-                buf[1] = 0x84;
-                buf[2] = 0x60;
-                buf[3] = 0x00;
-                buf[4] = 0xE8;
-                buf[5] = 0x03;
-                buf[6] = 0x00;
-                buf[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf);
-            
-                id = 0x601;
-                len = 8;
-                buf[0] = 0x2F
-                buf[1] = 0x86;
-                buf[2] = 0x60;
-                buf[3] = 0x00;
-                buf[4] = 0x01;
-                buf[5] = 0x00;
-                buf[6] = 0x00;
-                buf[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf); */
-            
+                CAN.sendMsgBuf(id, 0, len, buf1);    
                 
                 // Set the control word to "on"
                 id = 0x601;
@@ -352,8 +255,12 @@ void loop()
                 buf1[5] = 0x00;
                 buf1[6] = 0x00;
                 buf1[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf1);
+                CAN.sendMsgBuf(id, 0, len, buf1);    
+            }
+            case DSPACE_SHIFT_DOWN:
+            {
                 
+                //Moving back NEGATIVE - 2400000
                 id = 0x601;
                 len = 8;
                 buf1[0] = 0x23;
@@ -379,21 +286,19 @@ void loop()
                 buf1[7] = 0x00;
                 CAN.sendMsgBuf(id, 0, len, buf1);
             
-                /*// Set the control word to "off"
+                // Set the control word to "off"
                 id = 0x601;
                 len = 8;
-                buf[0] = 0x2B;
-                buf[1] = 0x40;
-                buf[2] = 0x60;
-                buf[3] = 0x00;
-                buf[4] = 0x0F;
-                buf[5] = 0x00;
-                buf[6] = 0x00;
-                buf[7] = 0x00;
-                CAN.sendMsgBuf(id, 0, len, buf);*/
-              }
-              break;
-        }
+                buf1[0] = 0x2B;
+                buf1[1] = 0x40;
+                buf1[2] = 0x60;
+                buf1[3] = 0x00;
+                buf1[4] = 0x0F;
+                buf1[5] = 0x00;
+                buf1[6] = 0x00;
+                buf1[7] = 0x00;
+                CAN.sendMsgBuf(id, 0, len, buf1); 
+            }
             default:
             {
                 Serial.print("CAN ID: ");
