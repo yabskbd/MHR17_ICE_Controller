@@ -87,7 +87,6 @@ void pwm_init()
     return;
 }
 
-// set duty cycle of throttle
 void set_duty(unsigned int  duty)
 {
     U16 diff = MIN_THROTTLE - MAX_THROTTLE;
@@ -134,8 +133,10 @@ void clutch_dir(U8 dir){
         default:
             break;
     }
+    TCNT3 = 0;
     clutch_motor_power(CLUTCH_ON); //initiallize motor on
 }
+
 void adc_init()
 {
     // turn on adc
@@ -148,7 +149,7 @@ void adc_init()
 
 
 U16 counter = 0;
-U16 COUNT_LEN = 1;
+U16 COUNT_LEN = 8;
 ISR(INT0_vect)
 {
     counter++;
@@ -158,6 +159,22 @@ ISR(INT0_vect)
         clutch_motor_power(CLUTCH_OFF);
     }
     return;
+}
+
+// set up timer for turning off motor after half second
+void clutch_timer_init()
+{
+    TCCR3B |= (1<<CS32)|(0<<CS31)|(0<<CS30);    //set prescalar 256
+    TCCR3B |= (0<<WGM33)|(0<<WGM32);    //set normal mode
+    TCCR3A |= (0<<WGM31)|(0<<WGM30);
+    TIMSK3 |= (1<<OCIE3A); // enable interrupt on compare match
+    OCR3A = 31250*2;
+}
+
+ISR(TIMER3_COMPA_vect)
+{
+    clutch_motor_power(CLUTCH_OFF);
+    counter = 0;
 }
 
 void main(void)
