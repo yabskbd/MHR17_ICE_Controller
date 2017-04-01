@@ -60,6 +60,8 @@ void send_message(char* message)
         send_char(*message);
         message++;
     }
+    send_char('\n');
+    send_char('\r');
     return;
 }
 
@@ -229,7 +231,7 @@ void main(void)
           
         U8 buf[8];
         //Recieved CAN  message Seq
-        send_message("Setup Recieve: \t");
+        //send_message("Setup Recieve: \t");
         can_message.pt_data = &buf[0];
         can_message.cmd = CMD_RX_DATA;
         while(can_cmd(&can_message) != CAN_CMD_ACCEPTED){
@@ -239,9 +241,11 @@ void main(void)
         while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
         //Recive CAN LOOP END*/
         //Check Message on the line
-        send_message("Recieved Message");
-        send_int(buf[0]);
-        send_int(can_message.id.std);
+        //send_message("Recieved Message");
+        
+        //send_int(buf[0]);
+        //send_int(can_message.id.std);
+        
         //Recieved CAN Message Seq End */
 
         ///Checking Clutch state:
@@ -254,12 +258,12 @@ void main(void)
         switch(can_message.id.std)
         {
             case THROTTLE_ID:
-                send_message("Duty_CAN: \t");
-                send_int(buf[0]);
+                //send_message("Duty_CAN: \t");
+                //send_int(buf[0]);
                 set_duty(buf[0]);
                 break;
             case CLUTCH_ID:
-                
+                //send_message("Clutching Now");                
                 clutch_dir(buf[0]);
                 break;
             case CLUTCH_COUNT:

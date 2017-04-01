@@ -23,6 +23,11 @@
 ## Throttle Motor:
     Uses PWM for servo 
     Ouput on: PB5 (Pin 29 EXT2)
+## Shifting Control:
+    Calibration with Hall Sensors:
+    Upshift: 185 Increments
+    Down Shift: Negative (-) 165 Increments
+    Half Shift: 140 Increments
     
 ## CW disengages clutch
 ## CCW engages clutch
