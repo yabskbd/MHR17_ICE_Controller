@@ -60,11 +60,13 @@ void send_message(char* message)
         send_char(*message);
         message++;
     }
+    send_char('\n');
+    send_char('\r');
     return;
 }
 
 // initialize pwm for throttle
-void send_int(U16 data)
+void send_int(U32 data)
 {
     // wait for transmit buffer to be empty
     while(!(UCSR0A & (1<<UDRE0)));
@@ -136,6 +138,113 @@ void clutch_dir(U8 dir){
     }
     clutch_motor_power(CLUTCH_ON); //initiallize motor on
 }
+void send_val(U16 ID,U8 *data,U8 len) {
+    st_cmd_t toSend;
+
+    toSend.pt_data = data; // Pointer to first data byte
+    toSend.id.std = ID; // ID of message
+    toSend.dlc = len; // Num bytes
+    toSend.cmd = CMD_TX_DATA; // Type of can command
+
+    while(can_cmd(&toSend) != CAN_CMD_ACCEPTED);
+    while(can_get_status(&toSend) == CAN_STATUS_NOT_COMPLETED);
+}
+
+int setup_shifting(){
+
+    U8 reset_done = 0;
+    
+    st_cmd_t can_message;
+    send_message("Reseting Comm:");
+    U8 buf[8];
+
+    buf[0] = 0x40;
+    buf[1] = 0x60;
+    buf[2] = 0x60;
+    buf[3] = 0x00;
+    buf[4] = 0x00;
+    buf[5] = 0x00;
+    buf[6] = 0x00;
+    buf[7] = 0x00;
+
+    send_val(0x601,buf,8);
+
+/*
+    //Reset Comm
+    buf[0] = 0x82;
+    buf[1] = 0x01;
+    send_val(RESET_ID,buf,2);
+    
+    U32 reset_count = 0; 
+    while( reset_count++ < 1000000){
+    
+    }
+    while(!reset_done){
+        can_message.pt_data = &buf[0];
+        can_message.cmd = CMD_RX_DATA;
+        while(can_cmd(&can_message) != CAN_CMD_ACCEPTED && reset_count++ < 10000000){
+            //send_message("CAN Eror check:");
+            //send_int(can_get_status(&can_message));
+        }
+        if (reset_count >= 10000000) {
+            send_message("Reset");
+            return 0;
+        }
+
+        send_message("Found something!");
+       // while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
+
+        if(can_message.id.std == BOOT_UP_ID && buf[0]==0){
+            send_message("Boot up message recieved");
+            reset_done = 1;
+        } else {
+            send_message("NOT THE CORRECT MESSAGE");
+            send_int(can_message.id.std);
+            return 0;
+        } 
+    }*/
+/*
+    //START
+    send_message("START Node");
+    buf[0] = 0x01;
+    buf[1] = 0x01;
+    send_val(START_ID,buf,2);
+
+    reset_count = 0;
+    while( reset_count++ < 1000000){
+
+    }
+
+    //Shutdown
+    send_message("Shutdown Node");
+    buf[0] = 0x06;
+    buf[1] = 0x00;
+    send_val(SHUTDOWN_ID,buf,2);
+    
+    reset_count = 0;
+    while( reset_count++ < 1000000){
+
+    }
+    //Switchon
+    send_message("Switch Node");
+    buf[0] = 0x07;
+    buf[1] = 0x00;
+    send_val(SWITCH_ON_ID,buf,2);
+
+    reset_count = 0;
+    while( reset_count++ < 1000000){
+
+    }
+    //ENOP
+    send_message("ENOP Mode");
+    buf[0] = 0x0F;
+    buf[1] = 0x00;
+    send_val(ENOP_ID,buf,2);
+*/
+    return 1;
+
+}
+
 void adc_init()
 {
     // turn on adc
@@ -169,13 +278,15 @@ void main(void)
     GPIO_init(); 
 
     clutch_motor_power(CLUTCH_OFF); //initial motor off
-    
+      
+    send_message("CAN INIT...");
     //initialize can
     while(can_init(0) != 1);
     st_cmd_t can_message;
     can_id_t can_id;
     send_message("CAN INIT successful");
 
+    while(!setup_shifting());
     // incremental encoder counter setup
     //GPIO PD0 enabled as input in GPIO_init
     EIMSK |= (1 << INT0); //Set INT0 
@@ -203,7 +314,7 @@ void main(void)
         toSend.pt_data = &data_send;
         toSend.id.std = 0x50;
         toSend.dlc = 1;
-        toSend.cmd = CMD_TX_DATA;
+    send_message    toSend.cmd = CMD_TX_DATA;
 
         while(can_cmd(&toSend) != CAN_CMD_ACCEPTED);
         while(can_get_status(&toSend) == CAN_STATUS_NOT_COMPLETED);

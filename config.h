@@ -44,6 +44,16 @@
 #define CLUTCH_COUNT 0x40
 #define	STATUS_ID	0x60
 
+    //Shfiting
+#define RESET_ID 0x000
+#define BOOT_UP_ID 0x701
+#define START_ID 0x000
+#define SHUTDOWN_ID 0x201
+#define SWITCH_ON_ID 0x201
+#define ENOP_ID 0x201
+#define SDO_ID 0x601
+
+
 	// -------------- MISCELLANEOUS
     // Using TIMER_2 as RTC
 #define USE_TIMER8       TIMER8_1
