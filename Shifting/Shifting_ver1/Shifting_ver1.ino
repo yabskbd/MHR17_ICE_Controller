@@ -77,7 +77,7 @@ void setup()
     Serial.println("CAN BUS Shield init ok!");
      
     while(!init_shifting(CAN)){
-        //Wating for shifting to be enabled
+        delay(100);//Wating for shifting to be enabled
     }
     
     pinMode(5,INPUT);
@@ -109,12 +109,12 @@ void setup()
    
     
     //DOWNSHIFT
-    //Moving back NEGATIVE - 210
+    //Moving back NEGATIVE - 170
     DOWNSHIFT[0] = 0x23;
     DOWNSHIFT[1] = 0x7A;
     DOWNSHIFT[2] = 0x60;
     DOWNSHIFT[3] = 0x00;
-    DOWNSHIFT[4] = 0x2E; //LSB
+    DOWNSHIFT[4] = 0x56; //LSB
     DOWNSHIFT[5] = 0xFF;
     DOWNSHIFT[6] = 0xFF; 
     DOWNSHIFT[7] = 0xFF; //MSB
@@ -123,7 +123,7 @@ void setup()
     DOWNSHIFT_Back[1] = 0x7A;
     DOWNSHIFT_Back[2] = 0x60;
     DOWNSHIFT_Back[3] = 0x00;
-    DOWNSHIFT_Back[4] = 0xD2; //LSB
+    DOWNSHIFT_Back[4] = 0xAA; //LSB
     DOWNSHIFT_Back[5] = 0x00;
     DOWNSHIFT_Back[6] = 0x00; 
     DOWNSHIFT_Back[7] = 0x00; //MSB
