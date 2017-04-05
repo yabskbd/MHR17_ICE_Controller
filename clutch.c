@@ -4,6 +4,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include "config.h"
+#include <util/delay.h>
 #include "libraries/lib_mcu/can/can_lib.h"
 #include <stdio.h>
 
@@ -92,19 +93,9 @@ void pwm_init()
 void set_duty(unsigned int  duty)
 {
     U16 diff = MIN_THROTTLE - MAX_THROTTLE;
-    //send_message("Diff between max and min \t");
-    //send_int(diff);
-    //send_message("Percent");
-    //send_int(percent);
     U16 pos_rel_to_min = (duty)*(diff/100);
-    //send_message("pos_relative to min \t");
-   //send_int((int)(pos_rel_to_min));
     U16 final = MIN_THROTTLE - pos_rel_to_min;
-    //send_message("Final\t");
-    //send_int(final);    
     OCR1A = final;
-    //send_message("OCR1A: \t");
-    //send_int(OCR1A);
     return;
 }
 
@@ -112,10 +103,12 @@ void clutch_motor_power(U8 on_off){
 
     switch(on_off){
         case (CLUTCH_ON):
+            send_message("clutch on (function)");
             PORTA &= ~(1<<PA1);
             break;
         case(CLUTCH_OFF):
             PORTA |= (1<<PA1); //Setting bit High
+            send_message("clutch off (function)");
             break;
         default:
             break;
@@ -124,7 +117,7 @@ void clutch_motor_power(U8 on_off){
 }
 
 void clutch_dir(U8 dir){
-    
+
     switch(dir){
         case (CLUTCH_CW):
             PORTA &= ~(1<<PA2);
@@ -150,15 +143,17 @@ void adc_init()
 }
 
 
-U16 counter = 0;
-U16 COUNT_LEN = 8;
+U16 INCREMENT_COUNT = 0;
+U16 COUNT_LEN = 45;
 ISR(INT0_vect)
 {
-    counter++;
-    if(counter >= COUNT_LEN)
+    INCREMENT_COUNT++;
+    send_int(INCREMENT_COUNT);
+    if(INCREMENT_COUNT >= COUNT_LEN)
     {
-        counter = 0;
+        INCREMENT_COUNT = 0;
         clutch_motor_power(CLUTCH_OFF);
+        send_message("count reached");
     }
     return;
 }
@@ -170,14 +165,14 @@ void clutch_timer_init()
     TCCR3B |= (0<<WGM33)|(0<<WGM32);    //set normal mode
     TCCR3A |= (0<<WGM31)|(0<<WGM30);
     TIMSK3 |= (1<<OCIE3A); // enable interrupt on compare match
-    //OCR3A = 31250;
-    OCR3A = 62500;
+    OCR3A = 31250;
 }
 
 ISR(TIMER3_COMPA_vect)
 {
+    send_message("clutch off (timeout)");
     clutch_motor_power(CLUTCH_OFF);
-    counter = 0;
+    INCREMENT_COUNT = 0;
 }
 
 void sendCanMessage(U8* data, U16 id, U8 datalen)
@@ -189,20 +184,84 @@ void sendCanMessage(U8* data, U16 id, U8 datalen)
     message.dlc = datalen;
     message.pt_data = data;
     while(can_cmd(&message) != CAN_CMD_ACCEPTED);
-    while(can_get_status(&message) == CAN_STATUS_NOT_COMPLETE);
-    
+    while(can_get_status(&message) == CAN_STATUS_NOT_COMPLETED);
     return;
 }
 
-st_cmd_t* recieveCanMessage(U8* buf)
+void recieveCanMessage(U8* buf, st_cmd_t* message)
 {
-    st_cmd_t message;
-    message.pt_data = buf;
-    message.cmd = CMD_RX;
-    while(can_cmd(&message) != CAN_CMD_ACCEPTED);
-    while(can_get_status(&message) == CAN_STATUS_NOT_COMPLETE);
+    U8 c_status;
+    message->pt_data = buf;
+    message->cmd = CMD_RX;
+    while(can_cmd(message) != CAN_CMD_ACCEPTED);
+    while(can_get_status(message) == CAN_STATUS_NOT_COMPLETED);
 
-    return message;
+    // if command not accepted
+    /*if(can_cmd(message) == CAN_CMD_REFUSED)
+    {
+        return;
+    }
+    else
+    {
+        c_status = can_get_status(message);
+        switch(c_status)
+        {
+            case CAN_STATUS_COMPLETED:
+                break;
+            case CAN_STATUS_NOT_COMPLETED:
+                break;
+            default:
+                break;
+        }
+    }*/
+
+    return;
+}
+
+// wait for bootup message
+// return 1 if successful, 0 otherwise
+int waitForBootupMessage()
+{
+    U8 buf[8];
+    U32 count = 0;
+    st_cmd_t message;
+
+    send_message("Wait for bootup message:");
+    while(count++ <= 100)
+    {
+        recieveCanMessage(buf, &message);
+        if((message.id.std==0x701)&&(buf[0]==0x00))
+        {
+            send_message("Boot up Message Recieved");
+            return 1;
+        }
+    }
+    send_message("Bootup message not recieved");
+    return 0;
+}
+
+// check device is in enabled operation state
+// return 1 if is in enabled operation, 0 otherwise
+int waitForEnabledOperation()
+{
+    U8 buf[8];
+    U32 count = 0;
+    st_cmd_t message;
+
+    send_message("wait for device enabled message:");
+    while(count++ <= 100)
+    {
+        send_message("point 1");
+        recieveCanMessage(buf, &message);
+        if((message.id.std==0x281)&&(buf[0]!=0x21))
+        {
+            send_message("Operation Enabled");
+            return 1;
+        }
+    }
+    send_message("Device Enable operation Failed");
+    _delay_ms(1000);
+    return 0;
 }
 
 // initialize shifting motor
@@ -213,52 +272,67 @@ int shiftingInit()
 
     // variables for sending CAN
     U8 buf[8];
-    st_cmd_t* message;
 
+    // reset controller
     send_message("Reseting Controller:");
     buf[0] = 0x82;
     buf[1] = 0x01;
     sendCanMessage(buf, 0x000, 2);
 
-    //wait
-    send_message("Wait for bootup message:");
-    U32 count = 0; // for counting wait for bootup message
-    while(count++ <= 16000000)
+    //wait for bootup
+    if(!waitForBootupMessage())
     {
-        message = recieveCanMessage(buf); //recieve message
-
-        if((message->id.std==0x701)&&(buf[0]==0x00))
-        {   
-            //start can node
-            send_message("Start CAN Node:");
-            buf[0] = 0x01;
-            buf[1] = 0x01;
-            sendCanMessage(buf, 0x000, 2);
-
-            //shutdown driver
-            send_message("Shutdown output driver:");
-            buf[0] = 0x06;
-            buf[1] = 0x00;
-            sendCanMessage(buf, 0x201, 2);
-
-            //switch on output driver
-            send_message("Switch on output driver");
-            buf[0] = 0x07;
-            buf[1] = 0x00;
-            sendCanMessage(buf, 0x201, 2);
-
-            //enable operation
-            send_message("Enabling operation");
-            buf[0] = 0x0F;
-            buf[1] = 0x00;
-            sendCanMessage(buf, 0x201, 2);
-
-            // wait for bootup command
-        }
+        return 0; // did not revieve bootup message
     }
+ 
+    // start canopen node
+    send_message("Starting CAN node:");
+    buf[0] = 0x01;
+    buf[1] = 0x01;
+    sendCanMessage(buf, 0x000, 2);
+    _delay_ms(100);
+
+    // shutdown output driver
+    send_message("shutdown ouput driver:");
+    buf[0] = 0x06;
+    buf[1] = 0x00;
+    sendCanMessage(buf, 0x201, 2);
+    _delay_ms(100);
+
+    // switch on output driver
+    send_message("switch on output driver:");
+    buf[0] = 0x07;
+    buf[1] = 0x00;
+    sendCanMessage(buf, 0x201, 2);
+    _delay_ms(100);
+
+    // Enable operation
+    send_message("Enter enable operation mode:");
+    buf[0] = 0x0F;
+    buf[1] = 0x00;
+    sendCanMessage(buf, 0x201, 2);
+    _delay_ms(100);
+
+    // set to profile position mode
+    buf[0] = 0x4F;
+    buf[1] = 0x60;
+    buf[2] = 0x60;
+    buf[3] = 0x00;
+    buf[4] = 0x01;
+    buf[5] = 0x00;
+    buf[6] = 0x00;
+    buf[7] = 0x00;
+    sendCanMessage(buf, 0x581, 8);
+    _delay_ms(100);
+
     
-    send_message("Timeout: Reset message not recieved");
-    return 0;
+    // check if enabled
+    if(!waitForEnabledOperation())
+    {
+        return 0; // did not enter enabled operation
+    }
+
+    return 1; // Bootup successful
 }
 
 void main(void)
@@ -270,15 +344,17 @@ void main(void)
     GPIO_init(); 
 
     clutch_motor_power(CLUTCH_OFF); //initial motor off
+    clutch_timer_init();
 
     //initialize can
+    _delay_ms(1000);
     while(can_init(0) != 1);
-    st_cmd_t can_message;
-    can_id_t can_id;
+    st_cmd_t message;
+    U8 buf[8];
     send_message("CAN INIT successful");
 
     // initialize shifting
-    while(!shiftingInit());
+    //while(!shiftingInit());
 
     // incremental encoder counter setup
     //GPIO PD0 enabled as input in GPIO_init
@@ -294,61 +370,20 @@ void main(void)
     send_char('\n');
     send_message("Value of OCR1A at call");
     set_duty(0);
-	//End of Duty Cycle Debug */
-    //
 
     // execution loop
     while(1){
-        
-        /*//Send CAN Message Seq
-        send_message("Sending Message?");
-        U8 data_send = 100;
-        st_cmd_t toSend;
-        toSend.pt_data = &data_send;
-        toSend.id.std = 0x50;
-        toSend.dlc = 1;
-        toSend.cmd = CMD_TX_DATA;
-
-        while(can_cmd(&toSend) != CAN_CMD_ACCEPTED);
-        while(can_get_status(&toSend) == CAN_STATUS_NOT_COMPLETED);
-        send_message("Sent");
-        //Send CAN Message Seq End */
-          
-        U8 buf[8];
-        //Recieved CAN  message Seq
-        //send_message("Setup Recieve: \t");
-        can_message.pt_data = &buf[0];
-        can_message.cmd = CMD_RX_DATA;
-        while(can_cmd(&can_message) != CAN_CMD_ACCEPTED){
-            send_message("CAN Eror check:");
-            send_int(can_get_status(&can_message));
-        }
-        while(can_get_status(&can_message) != CAN_STATUS_COMPLETED);
-        //Recive CAN LOOP END*/
-        //Check Message on the line
-        //send_message("Recieved Message");
-        
-        //send_int(buf[0]);
-        //send_int(can_message.id.std);
-        
-        //Recieved CAN Message Seq End */
-
-        ///Checking Clutch state:
-        //send_int(PIND & (1<<PIND0)); //Read value of PD0
-        //send_int(counter);
-        //send_char('\t');
-        ///Clutch State debug code */
+       
+        // recieve message
+        recieveCanMessage(buf, &message);
         
         //CAN ID specific Excution:
-        switch(can_message.id.std)
+        switch(message.id.std)
         {
             case THROTTLE_ID:
-                //send_message("Duty_CAN: \t");
-                //send_int(buf[0]);
                 set_duty(buf[0]);
                 break;
             case CLUTCH_ID:
-                //send_message("Clutching Now");                
                 clutch_dir(buf[0]);
                 break;
             case CLUTCH_COUNT:
