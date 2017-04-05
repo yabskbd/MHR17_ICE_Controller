@@ -180,6 +180,87 @@ ISR(TIMER3_COMPA_vect)
     counter = 0;
 }
 
+void sendCanMessage(U8* data, U16 id, U8 datalen)
+{
+    //variables for sending CAN
+    st_cmd_t message;
+    message.cmd = CMD_TX;
+    message.id.std = id;
+    message.dlc = datalen;
+    message.pt_data = data;
+    while(can_cmd(&message) != CAN_CMD_ACCEPTED);
+    while(can_get_status(&message) == CAN_STATUS_NOT_COMPLETE);
+    
+    return;
+}
+
+st_cmd_t* recieveCanMessage(U8* buf)
+{
+    st_cmd_t message;
+    message.pt_data = buf;
+    message.cmd = CMD_RX;
+    while(can_cmd(&message) != CAN_CMD_ACCEPTED);
+    while(can_get_status(&message) == CAN_STATUS_NOT_COMPLETE);
+
+    return message;
+}
+
+// initialize shifting motor
+// return 1 if successful, 0 if fail
+int shiftingInit()
+{
+    send_message("Initializing Shifting actuator:");
+
+    // variables for sending CAN
+    U8 buf[8];
+    st_cmd_t* message;
+
+    send_message("Reseting Controller:");
+    buf[0] = 0x82;
+    buf[1] = 0x01;
+    sendCanMessage(buf, 0x000, 2);
+
+    //wait
+    send_message("Wait for bootup message:");
+    U32 count = 0; // for counting wait for bootup message
+    while(count++ <= 16000000)
+    {
+        message = recieveCanMessage(buf); //recieve message
+
+        if((message->id.std==0x701)&&(buf[0]==0x00))
+        {   
+            //start can node
+            send_message("Start CAN Node:");
+            buf[0] = 0x01;
+            buf[1] = 0x01;
+            sendCanMessage(buf, 0x000, 2);
+
+            //shutdown driver
+            send_message("Shutdown output driver:");
+            buf[0] = 0x06;
+            buf[1] = 0x00;
+            sendCanMessage(buf, 0x201, 2);
+
+            //switch on output driver
+            send_message("Switch on output driver");
+            buf[0] = 0x07;
+            buf[1] = 0x00;
+            sendCanMessage(buf, 0x201, 2);
+
+            //enable operation
+            send_message("Enabling operation");
+            buf[0] = 0x0F;
+            buf[1] = 0x00;
+            sendCanMessage(buf, 0x201, 2);
+
+            // wait for bootup command
+        }
+    }
+    
+    send_message("Timeout: Reset message not recieved");
+    return 0;
+}
+
 void main(void)
 {
     // setup timer for PWM to control motor 
@@ -189,12 +270,15 @@ void main(void)
     GPIO_init(); 
 
     clutch_motor_power(CLUTCH_OFF); //initial motor off
-    
+
     //initialize can
     while(can_init(0) != 1);
     st_cmd_t can_message;
     can_id_t can_id;
     send_message("CAN INIT successful");
+
+    // initialize shifting
+    while(!shiftingInit());
 
     // incremental encoder counter setup
     //GPIO PD0 enabled as input in GPIO_init
