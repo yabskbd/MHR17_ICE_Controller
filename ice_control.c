@@ -66,6 +66,18 @@ void send_message(char* message)
     return;
 }
 
+void send_string(char* message)
+{ 
+	//while there are still characters to send
+    while(*message |= '\0')
+    {
+        send_char(*message);
+        message++;
+    }
+    
+    return;
+}
+
 // initialize pwm for throttle
 void send_int(U16 data)
 {
@@ -73,7 +85,7 @@ void send_int(U16 data)
     while(!(UCSR0A & (1<<UDRE0)));
     char str[7];
     sprintf(str,"%d",data);
-    send_message(str);
+    send_string(str);
     return;
 }
 
@@ -144,11 +156,12 @@ void adc_init()
 
 
 U16 INCREMENT_COUNT = 0;
-U16 COUNT_LEN = 45;
+U16 COUNT_LEN = 53;
 ISR(INT0_vect)
 {
     INCREMENT_COUNT++;
     send_int(INCREMENT_COUNT);
+    send_string("\n\r");
     if(INCREMENT_COUNT >= COUNT_LEN)
     {
         INCREMENT_COUNT = 0;
@@ -165,7 +178,7 @@ void clutch_timer_init()
     TCCR3B |= (0<<WGM33)|(0<<WGM32);    //set normal mode
     TCCR3A |= (0<<WGM31)|(0<<WGM30);
     TIMSK3 |= (1<<OCIE3A); // enable interrupt on compare match
-    OCR3A = 31250;
+    OCR3A = 37500;
 }
 
 ISR(TIMER3_COMPA_vect)
@@ -230,6 +243,18 @@ int waitForBootupMessage()
     while(count++ <= 100)
     {
         recieveCanMessage(buf, &message);
+
+    /*    // debug for messages for can line
+        send_string("id:\t");
+        send_int(message.id.std);
+        send_string("\tMessage:\t");
+        for(int i = 0; i<message.dlc;i++)
+        {
+            send_char((*message.pt_data)[i]);
+            send_char('\t');
+        }
+        send_string("\n\r");*/
+
         if((message.id.std==0x701)&&(buf[0]==0x00))
         {
             send_message("Boot up Message Recieved");
@@ -251,8 +276,19 @@ int waitForEnabledOperation()
     send_message("wait for device enabled message:");
     while(count++ <= 100)
     {
-        send_message("point 1");
         recieveCanMessage(buf, &message);
+        
+/*        // debug for messages for can line
+        send_string("id:\t");
+        send_int(message.id.std);
+        send_string("\tMessage:\t");
+        for(int i = 0; i<message.dlc;i++)
+        {
+            send_char((*message.pt_data)[i]);
+            send_char('\t');
+        }
+        send_string("\n\r");*/
+
         if((message.id.std==0x281)&&(buf[0]!=0x21))
         {
             send_message("Operation Enabled");
@@ -371,6 +407,7 @@ void main(void)
     send_message("Value of OCR1A at call");
     set_duty(0);
 
+    
     // execution loop
     while(1){
        

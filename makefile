@@ -1,11 +1,11 @@
 #Add files for compiler
-TARGET=clutch.c ./libraries/lib_mcu/can/can_lib.c ./libraries/lib_mcu/can/can_drv.c ./libraries/lib_mcu/uart/uart_lib.c ./libraries/lib_mcu/uart/uart_drv.c  ./libraries/lib_mcu/timer/timer16_drv.c ./libraries/lib_mcu/timer/timer8_drv.c 
+TARGET=ice_control.c ./libraries/lib_mcu/can/can_lib.c ./libraries/lib_mcu/can/can_drv.c ./libraries/lib_mcu/uart/uart_lib.c ./libraries/lib_mcu/uart/uart_drv.c  ./libraries/lib_mcu/timer/timer16_drv.c ./libraries/lib_mcu/timer/timer8_drv.c 
 
 # Change based on computer
 USB=tty.usbserial-A902ZULV 
 
 # Change for output file
-OUTPUT=clutch.elf
+OUTPUT=ice_control.elf
 
 build: $(TARGET)
 	avr-gcc -mmcu=at90can128 -O1 -g $(TARGET) -o $(OUTPUT)
