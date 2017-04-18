@@ -86,7 +86,7 @@ int init_shifting(MCP_CAN CAN){
     Serial.println("Shifting Enabled");
 
     // set to profile position mode
-    delay(1000);
+    delay(100);
     id = 0x601;
     len = 8;
     buf[0] = 0x2F;

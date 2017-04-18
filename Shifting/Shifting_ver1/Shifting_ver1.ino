@@ -64,20 +64,27 @@ void shift_pos(MCP_CAN CAN, INT8U * pos){
 void setup()
 {
     Serial.begin(115200);
-    delay(1000);
+    delay(100);
     
-    while(CAN_OK != CAN.begin(CAN_1000KBPS))                   // init can bus : baudrate = 500k
-    {
-        Serial.println("CAN BUS Shield init fail");
-        Serial.println("Init CAN BUS Shield again");
-        delay(100);
-    }
-
-    Serial.print("\n\n");
-    Serial.println("CAN BUS Shield init ok!");
-     
-    while(!init_shifting(CAN)){
-        delay(100);//Wating for shifting to be enabled
+    int int_counter = 0;
+    while(int_counter < 4){ 
+      
+      while(CAN_OK != CAN.begin(CAN_1000KBPS))                   // init can bus : baudrate = 500k
+      {
+          Serial.println("CAN BUS Shield init fail");
+          Serial.println("Init CAN BUS Shield again");
+          delay(100);
+      }
+  
+      Serial.print("\n\n");
+      Serial.println("CAN BUS Shield init ok!");
+      
+      delay(1000);
+    
+      while(!init_shifting(CAN)){
+          delay(100);//Wating for shifting to be enabled
+      }
+      int_counter = int_counter + 1;
     }
     
     pinMode(5,INPUT);
@@ -88,12 +95,12 @@ void setup()
     digitalWrite(3,INPUT_PULLUP);
     
     //UPSHIFT
-    // move incrementally POSTIVE + 185
+    // move incrementally POSTIVE + 140
     UPSHIFT[0] = 0x23;
     UPSHIFT[1] = 0x7A;
     UPSHIFT[2] = 0x60;
     UPSHIFT[3] = 0x00;
-    UPSHIFT[4] = 0xB9; //LSB
+    UPSHIFT[4] = 0x8C; //LSB
     UPSHIFT[5] = 0x00;
     UPSHIFT[6] = 0x00; 
     UPSHIFT[7] = 0x00; //MSB
@@ -102,19 +109,19 @@ void setup()
     UPSHIFT_Back[1] = 0x7A;
     UPSHIFT_Back[2] = 0x60;
     UPSHIFT_Back[3] = 0x00;
-    UPSHIFT_Back[4] = 0x47; //LSB
+    UPSHIFT_Back[4] = 0x74; //LSB
     UPSHIFT_Back[5] = 0xFF;
     UPSHIFT_Back[6] = 0xFF; 
     UPSHIFT_Back[7] = 0xFF; //MSB
    
     
     //DOWNSHIFT
-    //Moving back NEGATIVE - 170
+    //Moving back NEGATIVE - 90
     DOWNSHIFT[0] = 0x23;
     DOWNSHIFT[1] = 0x7A;
     DOWNSHIFT[2] = 0x60;
     DOWNSHIFT[3] = 0x00;
-    DOWNSHIFT[4] = 0x56; //LSB
+    DOWNSHIFT[4] = 0xA6; //LSB
     DOWNSHIFT[5] = 0xFF;
     DOWNSHIFT[6] = 0xFF; 
     DOWNSHIFT[7] = 0xFF; //MSB
@@ -123,18 +130,18 @@ void setup()
     DOWNSHIFT_Back[1] = 0x7A;
     DOWNSHIFT_Back[2] = 0x60;
     DOWNSHIFT_Back[3] = 0x00;
-    DOWNSHIFT_Back[4] = 0xAA; //LSB
+    DOWNSHIFT_Back[4] = 0x5A; //LSB
     DOWNSHIFT_Back[5] = 0x00;
     DOWNSHIFT_Back[6] = 0x00; 
     DOWNSHIFT_Back[7] = 0x00; //MSB
   
     //HALFSHIFT
-    //Moving Postive 140
+    //Moving Postive 110
     HALFSHIFT[0] = 0x23;
     HALFSHIFT[1] = 0x7A;
     HALFSHIFT[2] = 0x60;
     HALFSHIFT[3] = 0x00;
-    HALFSHIFT[4] = 0x8C; //LSB
+    HALFSHIFT[4] = 0x6E; //LSB
     HALFSHIFT[5] = 0x00;
     HALFSHIFT[6] = 0x00;
     HALFSHIFT[7] = 0x00; //MSB
@@ -143,7 +150,7 @@ void setup()
     HALFSHIFT_Back[1] = 0x7A;
     HALFSHIFT_Back[2] = 0x60;
     HALFSHIFT_Back[3] = 0x00;
-    HALFSHIFT_Back[4] = 0x74; //LSB
+    HALFSHIFT_Back[4] = 0x92; //LSB
     HALFSHIFT_Back[5] = 0xFF;
     HALFSHIFT_Back[6] = 0xFF;
     HALFSHIFT_Back[7] = 0xFF; //MSB
