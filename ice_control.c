@@ -18,6 +18,7 @@
 #define CLUTCH_OFF 1
 #define CLUTCH_CW 0 //For Setting direction facing motor
 #define CLUTCH_CCW 1 //For Setting direction facing motor
+
 // setup and initialize UART for debugging messages
 void serial_init()
 {
