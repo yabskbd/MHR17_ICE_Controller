@@ -21,7 +21,7 @@ INT8U UPSHIFT_Back[8];
 INT8U DOWNSHIFT_Back[8];
 INT8U HALFSHIFT_Back[8];
 
-void shift_pos(MCP_CAN CAN, INT8U * pos){
+void shift_pos_old(MCP_CAN CAN, INT8U * pos){
 
   INT8U buf1[8];
   INT32U id;
@@ -61,10 +61,12 @@ void shift_pos(MCP_CAN CAN, INT8U * pos){
 
 }
 
+
+
 void setup()
 {
     Serial.begin(115200);
-    delay(100);
+    delay(1000);
     
     int int_counter = 0;
     while(int_counter < 4){ 
@@ -94,13 +96,66 @@ void setup()
     pinMode(3,INPUT);
     digitalWrite(3,INPUT_PULLUP);
     
+    INT8U len = 8;
+    INT8U buf1[8];
+    INT32U id = 0;
+        
+    // Request Initial Position
+    id = 0x601;
+    len = 8;
+    buf1[0] = 0x40;
+    buf1[1] = 0x64;
+    buf1[2] = 0x60;
+    buf1[3] = 0x00;
+    buf1[4] = 0x00;
+    buf1[5] = 0x00;
+    buf1[6] = 0x00;
+    buf1[7] = 0x00; 
+    CAN.sendMsgBuf(id, 0, len, buf1);
+    
+    while(CAN_MSGAVAIL == CAN.checkReceive()){
+      CAN.readMsgBuf(&len, buf1);
+
+      id = CAN.getCanId();
+      if(id==0x581 && buf1[1] == 0x64 && buf1[2]==0x60) {
+        CURR_POS = buf1[7];
+        CURR_POS = (CURR_POS << 8);
+        CURR_POS = CURR_POS + buf1[6];
+        CURR_POS = (CURR_POS << 8);
+        CURR_POS = CURR_POS +  buf1[5];
+        CURR_POS = (CURR_POS << 8);
+        CURR_POS = CURR_POS + buf1[4];
+        
+        if(int_pos_time){
+          START_POS = CURR_POS;
+          int_pos_time = 0;
+        }
+        
+        Serial.print("Inital_POS: ");
+        Serial.println(CURR_POS);
+        
+      }
+
+      Serial.print("CAN ID: ");
+      Serial.print(id, HEX);
+      Serial.print('\t');
+      Serial.print("Message: ");
+      for(int i = 0; i < len; i++)
+      {
+          Serial.print(buf1[i],HEX);
+          Serial.print('\t');
+      }
+      Serial.print("\n");
+    }
+    
+    
     //UPSHIFT
-    // move incrementally POSTIVE + 140
+    // move incrementally POSTIVE + 130
     UPSHIFT[0] = 0x23;
     UPSHIFT[1] = 0x7A;
     UPSHIFT[2] = 0x60;
     UPSHIFT[3] = 0x00;
-    UPSHIFT[4] = 0x8C; //LSB
+    UPSHIFT[4] = 0x82; //LSB
     UPSHIFT[5] = 0x00;
     UPSHIFT[6] = 0x00; 
     UPSHIFT[7] = 0x00; //MSB
@@ -109,19 +164,19 @@ void setup()
     UPSHIFT_Back[1] = 0x7A;
     UPSHIFT_Back[2] = 0x60;
     UPSHIFT_Back[3] = 0x00;
-    UPSHIFT_Back[4] = 0x74; //LSB
+    UPSHIFT_Back[4] = 0x7E; //LSB
     UPSHIFT_Back[5] = 0xFF;
     UPSHIFT_Back[6] = 0xFF; 
     UPSHIFT_Back[7] = 0xFF; //MSB
    
     
     //DOWNSHIFT
-    //Moving back NEGATIVE - 90
+    //Moving back NEGATIVE - 105
     DOWNSHIFT[0] = 0x23;
     DOWNSHIFT[1] = 0x7A;
     DOWNSHIFT[2] = 0x60;
     DOWNSHIFT[3] = 0x00;
-    DOWNSHIFT[4] = 0xA6; //LSB
+    DOWNSHIFT[4] = 0x97; //LSB
     DOWNSHIFT[5] = 0xFF;
     DOWNSHIFT[6] = 0xFF; 
     DOWNSHIFT[7] = 0xFF; //MSB
@@ -130,18 +185,18 @@ void setup()
     DOWNSHIFT_Back[1] = 0x7A;
     DOWNSHIFT_Back[2] = 0x60;
     DOWNSHIFT_Back[3] = 0x00;
-    DOWNSHIFT_Back[4] = 0x5A; //LSB
+    DOWNSHIFT_Back[4] = 0x69; //LSB
     DOWNSHIFT_Back[5] = 0x00;
     DOWNSHIFT_Back[6] = 0x00; 
     DOWNSHIFT_Back[7] = 0x00; //MSB
   
     //HALFSHIFT
-    //Moving Postive 110
+    //Moving Postive 80
     HALFSHIFT[0] = 0x23;
     HALFSHIFT[1] = 0x7A;
     HALFSHIFT[2] = 0x60;
     HALFSHIFT[3] = 0x00;
-    HALFSHIFT[4] = 0x6E; //LSB
+    HALFSHIFT[4] = 0x50; //LSB
     HALFSHIFT[5] = 0x00;
     HALFSHIFT[6] = 0x00;
     HALFSHIFT[7] = 0x00; //MSB
@@ -150,7 +205,7 @@ void setup()
     HALFSHIFT_Back[1] = 0x7A;
     HALFSHIFT_Back[2] = 0x60;
     HALFSHIFT_Back[3] = 0x00;
-    HALFSHIFT_Back[4] = 0x92; //LSB
+    HALFSHIFT_Back[4] = 0xB0; //LSB
     HALFSHIFT_Back[5] = 0xFF;
     HALFSHIFT_Back[6] = 0xFF;
     HALFSHIFT_Back[7] = 0xFF; //MSB
@@ -167,6 +222,8 @@ void loop()
     INT8U len = 8;
     INT8U buf1[8];
     INT32U id = 0;
+    
+    
     
     delay(180);
     if(digitalRead(5) && ~(digitalRead(7))){
@@ -189,6 +246,8 @@ void loop()
     //Serial.println(digitalRead(A3));
     
     //delay(5000);
+    
+    
     //while(CAN_MSGAVAIL == CAN.checkReceive())            // check if data coming
     {
          
@@ -203,10 +262,7 @@ void loop()
             case DSPACE_SHIFT_UP:
             {
               Serial.println("UPSHIFT!");
-                shift_pos(CAN,UPSHIFT);
-                delay(1000);
-                shift_pos(CAN,UPSHIFT_Back);
-                
+                shift_pos(CAN,UPSHIFT); 
                 break;
                  
             }
@@ -214,8 +270,6 @@ void loop()
             {
              Serial.println("DOWNSHIFT!");
                 shift_pos(CAN,DOWNSHIFT);
-                delay(1000);
-                shift_pos(CAN,DOWNSHIFT_Back);
                 break;
              }
             
@@ -224,8 +278,6 @@ void loop()
             {
               Serial.println("HALFSHIFT!");
                 shift_pos(CAN,HALFSHIFT);  
-                delay(1000);
-                shift_pos(CAN,HALFSHIFT_Back);
                 break;
             }
             
@@ -241,7 +293,7 @@ void loop()
 //                    Serial.print('\t');
 //                }
 //                Serial.print("\n");
-//                break;
+                break;
             }
         }
     }

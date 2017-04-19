@@ -9,7 +9,146 @@
 #define DSPACE_SHIFT_HALF 0x06
 
 
+long START_POS = 0;
+long CURR_POS = 0;
+INT8U int_pos_time = 1;
+
 int wait_for_bootup_message(MCP_CAN CAN);
+
+
+void shift_pos(MCP_CAN CAN, INT8U * pos){
+
+  INT8U buf1[8];
+  INT32U id;
+  INT8U len;
+  
+  //Moving 
+  id = 0x601;
+  len = 8;
+  CAN.sendMsgBuf(id, 0, len, pos);
+  
+  // Set the control word to "on"
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x2B;
+  buf1[1] = 0x40;
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = 0x5F;
+  buf1[5] = 0x00;
+  buf1[6] = 0x00;
+  buf1[7] = 0x00; 
+  CAN.sendMsgBuf(id, 0, len, buf1);
+  
+  // Set the control word to "off"
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x2B;
+  buf1[1] = 0x40;
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = 0x0F;
+  buf1[5] = 0x00;
+  buf1[6] = 0x00;
+  buf1[7] = 0x00;
+  CAN.sendMsgBuf(id, 0, len, buf1); 
+  
+  //////////GETTING READY TO MOVE BACK  
+  delay(1000); 
+  
+  // Request Initial Position
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x40;
+  buf1[1] = 0x64;
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = 0x00;
+  buf1[5] = 0x00;
+  buf1[6] = 0x00;
+  buf1[7] = 0x00; 
+  CAN.sendMsgBuf(id, 0, len, buf1);
+  
+  while(CAN_MSGAVAIL == CAN.checkReceive()){
+    CAN.readMsgBuf(&len, buf1);
+  
+    id = CAN.getCanId();
+    if(id==0x581 && buf1[1] == 0x64 && buf1[2]==0x60) {
+      CURR_POS = buf1[7];
+      CURR_POS = (CURR_POS << 8);
+      CURR_POS = CURR_POS + buf1[6];
+      CURR_POS = (CURR_POS << 8);
+      CURR_POS = CURR_POS +  buf1[5];
+      CURR_POS = (CURR_POS << 8);
+      CURR_POS = CURR_POS + buf1[4];
+         
+      Serial.print("CURR_POS: ");
+      Serial.println(CURR_POS);
+      
+    }
+  
+    Serial.print("CAN ID: ");
+    Serial.print(id, HEX);
+    Serial.print('\t');
+    Serial.print("Message: ");
+    for(int i = 0; i < len; i++)
+    {
+        Serial.print(buf1[i],HEX);
+        Serial.print('\t');
+    }
+    Serial.print("\n");
+  }
+  
+  long diff = START_POS - CURR_POS;
+  Serial.print("Diff:");
+  Serial.println(diff);
+  
+  //Moving BACK
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x23;
+  buf1[1] =  0x7A; 
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = diff ;//LSB
+  buf1[5] = (diff>>8);
+  buf1[6] = (diff>>8);
+  buf1[7] =  (diff>>8);//MSB
+  CAN.sendMsgBuf(id, 0, len, buf1);
+  
+  // Set the control word to "on"
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x2B;
+  buf1[1] = 0x40;
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = 0x5F;
+  buf1[5] = 0x00;
+  buf1[6] = 0x00;
+  buf1[7] = 0x00; 
+  CAN.sendMsgBuf(id, 0, len, buf1);
+  
+  // Set the control word to "off"
+  id = 0x601;
+  len = 8;
+  buf1[0] = 0x2B;
+  buf1[1] = 0x40;
+  buf1[2] = 0x60;
+  buf1[3] = 0x00;
+  buf1[4] = 0x0F;
+  buf1[5] = 0x00;
+  buf1[6] = 0x00;
+  buf1[7] = 0x00;
+  CAN.sendMsgBuf(id, 0, len, buf1); 
+  
+
+}
+
+
+
+
+
 
 int init_shifting(MCP_CAN CAN){
     INT8U len = 8;
@@ -137,7 +276,7 @@ int wait_for_bootup_message(MCP_CAN CAN) {
         delay(10);
     }
     
-    if (wait >= 10000) {
+    if (wait >= 1000) {
       return 0;
     }
     CAN.readMsgBuf(&len, buf);
