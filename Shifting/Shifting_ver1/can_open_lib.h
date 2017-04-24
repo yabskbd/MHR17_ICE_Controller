@@ -2,6 +2,32 @@
 //
 // Created by: Andrew Stenberg
 // Date: April 24, 2017
+
+// check that data types are defined
+#ifndef INT8U
+#define INT8U  unsigned char
+#endif
+
+#ifndef INT8S
+#define INT8S signed char
+#endif
+
+#ifndef INT16U
+#define INT16U unsigned int
+#endif
+
+#ifndef INT16S
+#define INT16S signed int
+#endif
+
+#ifndef INT32U
+#define INT32U unsigned long
+#endif
+
+#ifndef INT32S
+#define INT32S signed long
+#endif
+
 #ifndef CAN_OPEN_LIB_H
 #define CAN_OPEN_LIB_H
 
@@ -9,13 +35,6 @@
 #include <mcp_can.h>
 #include <mcp_can_dfs.h>
 
-// check that data types are defined
-#typedef INT8U  unsigned char
-#typedef INT8S  signed char
-#typedef INT16U unsigned int
-#typedef INT16S signed int
-#typedef INT32U unsigned long
-#typedef INT32S signed long
 
 // CAN IDs for specifying objects
 #define NMT_ID          0x000
@@ -33,7 +52,7 @@
 #define SDO_RX_ID       0x601
 #define NMT_ERROR_ID    0x701
 
-void recieve message(MCP_CAN CAN)
+void recieve_message(MCP_CAN CAN)
 {
     
 }
