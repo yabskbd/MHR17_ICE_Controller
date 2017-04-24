@@ -3,6 +3,7 @@
 #include <mcp_can_dfs.h>
 #include <SPI.h>
 #include "shifting_setup.h"
+#include "can_open_lib.h"
 
 
 // the cs pin of the version after v1.1 is default to D9
