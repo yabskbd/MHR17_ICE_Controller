@@ -52,9 +52,66 @@
 #define SDO_RX_ID       0x601
 #define NMT_ERROR_ID    0x701
 
-void recieve_message(MCP_CAN CAN)
+// returns once CAN message is recieved
+void wait_for_message(MCP_CAN* CAN)
 {
-    
+    int i = 0;
+    while(CAN_MSGAVAIL != CAN->checkReceive())
+    {
+        Serial.print('.');
+        i++;
+        if(i > 60)
+        {
+            Serial.print('/n');
+            i = 0;
+        }
+        delay(10);
+    }
+    return;
+}
+
+struct PDO_Receive
+{
+    INT16U statusword;
+    INT32U position;
+};
+
+// checks that the proper PDO message is received, takes in PDO_Receive
+// object, changes object values. returns 1 if proper message is received
+// otherwise returns 0;
+int wait_recieve_PDO(MCP_CAN* CAN, INT32U CAN_ID, PDO_Receive* data)
+{
+    INT8U buf[8];
+    INT32U id;
+    INT8U len;
+
+    // wait for message to become available
+    Serial.print("Waiting for PDO Message");
+    wait_for_message(CAN);
+ 
+    // Read in message
+    CAN->readMsgBuf(&len, buf);
+    id = CAN->getCanId();
+
+    // check for proper id
+    if(id != CAN_ID)
+        return 0;
+
+    switch(id)
+    {
+        case PDO1_TX_ID:
+            data->statusword = (buf[1]<<8) + buf[0];
+            return 1;
+            break;
+        case PDO2_TX_ID:
+            data->statusword = (buf[1]<<8) + buf[0];
+            data->position = (buf[5]<<24)+(buf[4]<<16)+(buf[3]<<8)+buf[2];
+            return 1;
+            break;
+        default:
+            return 0; // did not recognize message
+            break;
+    }
 }
 
 #endif
