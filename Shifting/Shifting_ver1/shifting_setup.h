@@ -273,7 +273,7 @@ int wait_for_bootup_message(MCP_CAN CAN) {
     id = CAN.getCanId();
 
     // check for bootup message
-    if((id==BOOT_UP_ID)&&(buf[0]==0x00))
+    if((id==0x701)&&(buf[0]==0x00))
     {
         Serial.print("Boot up message recieved");
         return 1;

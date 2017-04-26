@@ -3,30 +3,7 @@
 // Created by: Andrew Stenberg
 // Date: April 24, 2017
 
-// check that data types are defined
-#ifndef INT8U
-#define INT8U  unsigned char
-#endif
-
-#ifndef INT8S
-#define INT8S signed char
-#endif
-
-#ifndef INT16U
-#define INT16U unsigned int
-#endif
-
-#ifndef INT16S
-#define INT16S signed int
-#endif
-
-#ifndef INT32U
-#define INT32U unsigned long
-#endif
-
-#ifndef INT32S
-#define INT32S signed long
-#endif
+#include "can_open_dfs.h"
 
 #ifndef CAN_OPEN_LIB_H
 #define CAN_OPEN_LIB_H
@@ -34,23 +11,6 @@
 // libraries for CAN
 #include <mcp_can.h>
 #include <mcp_can_dfs.h>
-
-
-// CAN IDs for specifying objects
-#define NMT_ID          0x000
-#define SYNC_ID         0x080
-#define EMERGENCY_ID    0X081
-#define PDO1_TX_ID      0x181
-#define PDO1_RX_ID      0x201
-#define PDO2_TX_ID      0x281
-#define PDO2_RX_ID      0x301
-#define PDO3_TX_ID      0x381
-#define PDO3_RX_ID      0x401
-#define PDO4_TX_ID      0x481
-#define PDO4_RX_ID      0x501
-#define SDO_TX_ID       0x581
-#define SDO_RX_ID       0x601
-#define NMT_ERROR_ID    0x701
 
 // returns once CAN message is recieved
 void wait_for_message(MCP_CAN* CAN)
@@ -73,13 +33,13 @@ void wait_for_message(MCP_CAN* CAN)
 struct PDO_Receive
 {
     INT16U statusword;
-    INT32U position;
+    INT32S position;
 };
 
 // checks that the proper PDO message is received, takes in PDO_Receive
 // object, changes object values. returns 1 if proper message is received
 // otherwise returns 0;
-int wait_recieve_PDO(MCP_CAN* CAN, INT32U CAN_ID, PDO_Receive* data)
+int pdo_wait_recieve(MCP_CAN* CAN, INT32U CAN_ID, PDO_Receive* data)
 {
     INT8U buf[8];
     INT32U id;
@@ -114,4 +74,88 @@ int wait_recieve_PDO(MCP_CAN* CAN, INT32U CAN_ID, PDO_Receive* data)
     }
 }
 
+// send a download request to motion controller
+// data is pointer to an array that is data[0]->low byte, data[n]->higher byte
+void sdo_download_request(MCP_CAN* CAN, INT16U index, INT8U subindex, INT8U CS, INT8U* data)
+{
+    INT8U buf[8];    // buffer for sending data
+    buf[0] = CS;
+    buf[1] = index & 0xFF; // ensure low byte
+    buf[2] = index >> 8;   // high byte
+    buf[3] = subindex;
+    
+    switch(CS) // load data based on command specifier
+    {
+        case DOWNLOAD_1_BYTES:
+            buf[4] = *data;
+            buf[5] = 0x00;
+            buf[6] = 0x00;
+            buf[7] = 0x00;
+            break;
+        case DOWNLOAD_2_BYTES:
+            buf[4] = *data++;
+            buf[5] = *data;
+            buf[6] = 0x00;
+            buf[7] = 0x00;
+            break;
+        case DOWNLOAD_3_BYTES:
+            buf[4] = *data++;
+            buf[5] = *data++;
+            buf[6] = *data;
+            buf[7] = 0x00;
+            break;
+        case DOWNLOAD_4_BYTES:
+            buf[4] = *data++;
+            buf[5] = *data++;
+            buf[6] = *data++;
+            buf[7] = *data;
+            break;
+        default:
+            break;
+    } // switch
+
+    // send SDO packet
+    CAN->sendMsgBuf(SDO_RX_ID, 0, 8, buf);
+}
+
+int sdo_wait_download_response(MCP_CAN* CAN, INT16U index, INT8U subindex)
+{
+    INT8U buf[8];
+    INT8U len;
+    INT32U id;
+    
+    // wait for and load in message
+    wait_for_message(CAN);
+    CAN->readMsgBuf(&len, buf);
+    id = CAN->getCanId();
+    
+    // check can id
+    if(id != SDO_TX_ID)
+        return 0;
+    // check command specifier
+    if(buf[0] != 0x60)
+        return 0;
+    // check index
+    else if(buf[1] != (index & 0xFF)) // lowbyte
+        return 0;
+    else if(buf[2] != (index >> 8)) // highbyte
+        return 0;
+    // check subindex
+    else if(buf[3] != subindex)
+        return 0;
+    else
+        return 1;
+}
+
 #endif
+
+
+
+
+
+
+
+
+
+
+
