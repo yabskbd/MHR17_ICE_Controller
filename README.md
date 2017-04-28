@@ -15,8 +15,8 @@
     Motor Direction Control: PA2 (Pin 26 EXT1)
         Direction defined facing motor
         CAN:
-            Message: 0 CW
-            Message: 1 CCW
+            Message: 0 CW (Depress)
+            Message: 1 CCW (Release)
     
     Motor Position: PD0 (Pin 26 EXT2@) (Uses interupt INT0)
         Make sure to disable pull after enabling sei(); global interupt
